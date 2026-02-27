@@ -3,103 +3,142 @@ import java.util.List;
 
 public class MoveGen {
 
-    // Bitmasks to prevent the "Wrap-Around Bug"
+    // --- BITMASKS ---
+    // Masks to prevent the "Wrap-Around Bug"
     private static final long NOT_A_FILE = ~0x0101010101010101L;
     private static final long NOT_H_FILE = ~0x8080808080808080L;
-
-    // Bitmask for Rank 4 (used to validate double pushes)
+    
+    // Masks for pieces that move two squares horizontally (Knights)
+    private static final long NOT_AB_FILE = ~0x0303030303030303L;
+    private static final long NOT_GH_FILE = ~0xC0C0C0C0C0C0C0C0L;
+    
+    // Masks for double pawn pushes
     private static final long RANK_4 = 0x00000000FF000000L;
-    // Bitmask for Rank 5 (used to validate Black double pushes)
     private static final long RANK_5 = 0x000000FF00000000L;
 
-    /**
-     * Generates all legal pawn moves for White and returns them as a list of Move
-     * objects.
-     */
+    // --- PRE-CALCULATED TABLES ---
+    private final long[] knightAttacks = new long[64];
+
+    public MoveGen() {
+        initKnightAttacks();
+    }
+
+    private void initKnightAttacks() {
+        for (int square = 0; square < 64; square++) {
+            long knight = 1L << square;
+            long attacks = 0L;
+
+            // Generate the 8 possible L-shapes
+            attacks |= (knight << 17) & NOT_A_FILE;
+            attacks |= (knight << 15) & NOT_H_FILE;
+            attacks |= (knight << 10) & NOT_AB_FILE;
+            attacks |= (knight << 6)  & NOT_GH_FILE;
+            
+            attacks |= (knight >>> 17) & NOT_H_FILE;
+            attacks |= (knight >>> 15) & NOT_A_FILE;
+            attacks |= (knight >>> 10) & NOT_GH_FILE;
+            attacks |= (knight >>> 6)  & NOT_AB_FILE;
+
+            knightAttacks[square] = attacks;
+        }
+    }
+
+    // --- PAWN MOVE GENERATION ---
+
     public List<Move> generateWhitePawnMoves(Board board) {
         List<Move> moves = new ArrayList<>();
         long emptySquares = ~board.allPieces;
 
-        // 1. Single Pushes (Shift up 8)
         long singlePushes = (board.whitePawns << 8) & emptySquares;
-        // The origin square is exactly 8 squares behind the target
-        extractMoves(singlePushes, -8, moves);
+        extractMovesWithOffset(singlePushes, -8, moves); 
 
-        // 2. Double Pushes (Shift single pushes up 8 again, must land on Rank 4)
         long doublePushes = (singlePushes << 8) & emptySquares & RANK_4;
-        // The origin square is exactly 16 squares behind the target
-        extractMoves(doublePushes, -16, moves);
+        extractMovesWithOffset(doublePushes, -16, moves); 
 
-        // 3. Captures Right (Shift up and right 9)
         long capturesRight = ((board.whitePawns & NOT_H_FILE) << 9) & board.blackPieces;
-        extractMoves(capturesRight, -9, moves);
+        extractMovesWithOffset(capturesRight, -9, moves);
 
-        // 4. Captures Left (Shift up and left 7)
         long capturesLeft = ((board.whitePawns & NOT_A_FILE) << 7) & board.blackPieces;
-        extractMoves(capturesLeft, -7, moves);
+        extractMovesWithOffset(capturesLeft, -7, moves);
 
         return moves;
     }
 
-    /**
-     * Generates all legal pawn moves for Black and returns them as a list of Move
-     * objects.
-     */
     public List<Move> generateBlackPawnMoves(Board board) {
         List<Move> moves = new ArrayList<>();
         long emptySquares = ~board.allPieces;
 
-        // 1. Single Pushes (Shift down 8 using UNSIGNED right shift)
         long singlePushes = (board.blackPawns >>> 8) & emptySquares;
-        // The origin square is exactly +8 squares ahead of the target index
-        extractMoves(singlePushes, 8, moves);
+        extractMovesWithOffset(singlePushes, 8, moves);
 
-        // 2. Double Pushes (Shift single pushes down 8 again, must land on Rank 5)
         long doublePushes = (singlePushes >>> 8) & emptySquares & RANK_5;
-        // The origin square is exactly +16 squares ahead of the target index
-        extractMoves(doublePushes, 16, moves);
+        extractMovesWithOffset(doublePushes, 16, moves);
 
-        // 3. Captures towards the A-File (Shift down and left 9)
-        // A pawn on B7 (index 50) captures to A6 (index 41). 50 - 41 = 9.
         long capturesAFile = ((board.blackPawns & NOT_A_FILE) >>> 9) & board.whitePieces;
-        extractMoves(capturesAFile, 9, moves);
+        extractMovesWithOffset(capturesAFile, 9, moves);
 
-        // 4. Captures towards the H-File (Shift down and right 7)
-        // A pawn on G7 (index 54) captures to H6 (index 47). 54 - 47 = 7.
         long capturesHFile = ((board.blackPawns & NOT_H_FILE) >>> 7) & board.whitePieces;
-        extractMoves(capturesHFile, 7, moves);
+        extractMovesWithOffset(capturesHFile, 7, moves);
 
         return moves;
     }
 
+    // --- KNIGHT MOVE GENERATION ---
+
+    public List<Move> generateWhiteKnightMoves(Board board) {
+        List<Move> moves = new ArrayList<>();
+        long knights = board.whiteKnights; 
+        
+        // White Knights can land on empty squares OR Black pieces, but NOT White pieces
+        long validSquares = ~board.whitePieces; 
+
+        while (knights != 0) {
+            int startSquare = Long.numberOfTrailingZeros(knights);
+            long attacks = knightAttacks[startSquare] & validSquares;
+            
+            extractMoves(attacks, startSquare, moves);
+            knights &= (knights - 1); 
+        }
+        return moves;
+    }
+
+    public List<Move> generateBlackKnightMoves(Board board) {
+        List<Move> moves = new ArrayList<>();
+        long knights = board.blackKnights; 
+        
+        // Black Knights can land on empty squares OR White pieces, but NOT Black pieces
+        long validSquares = ~board.blackPieces; 
+
+        while (knights != 0) {
+            int startSquare = Long.numberOfTrailingZeros(knights);
+            long attacks = knightAttacks[startSquare] & validSquares;
+            
+            extractMoves(attacks, startSquare, moves);
+            knights &= (knights - 1); 
+        }
+        return moves;
+    }
+
+    // --- HELPER METHODS FOR EXTRACTING MOVES ---
+
     /**
-     * Helper method to scan a bitboard, find the 1s, and convert them into Move
-     * objects.
-     * * @param targetBitboard The bitboard containing the valid destination squares
-     * 
-     * @param offset The mathematical difference between the target square and the
-     *               start square
-     * @param moves  The list to append the generated moves to
+     * For pieces like Knights where we already know the exact start square.
      */
-    private void extractMoves(long targetBitboard, int offset, List<Move> moves) {
-
-        // Loop runs as long as there is at least one '1' left in the bitboard
+    private void extractMoves(long targetBitboard, int startSquare, List<Move> moves) {
         while (targetBitboard != 0) {
-
-            // Long.numberOfTrailingZeros finds the index of the first '1' bit starting from
-            // the right (0 to 63)
             int targetSquare = Long.numberOfTrailingZeros(targetBitboard);
-
-            // Calculate where the piece originally came from
-            int startSquare = targetSquare + offset;
-
-            // Create the move and add it to our list
             moves.add(new Move(startSquare, targetSquare));
+            targetBitboard &= (targetBitboard - 1);
+        }
+    }
 
-            // CRITICAL STEP: Clear the least significant '1' bit so we don't process it
-            // again.
-            // (targetBitboard - 1) flips the lowest '1' and everything right of it.
-            // ANDing it with the original bitboard zeroes out exactly that lowest '1'.
+    /**
+     * For pieces like Pawns where we calculate the start square using a mathematical offset.
+     */
+    private void extractMovesWithOffset(long targetBitboard, int offset, List<Move> moves) {
+        while (targetBitboard != 0) {
+            int targetSquare = Long.numberOfTrailingZeros(targetBitboard);
+            moves.add(new Move(targetSquare + offset, targetSquare));
             targetBitboard &= (targetBitboard - 1);
         }
     }
