@@ -1,7 +1,9 @@
 # Java Bitboard Chess Engine
 
+**Author:** Manthan Patel
+
 ## Overview
-A chess engine built from scratch in Java. This project bypasses traditional array-based board representations in favor of **Bitboards** (64-bit integer mapping) to achieve lightning-fast move generation and collision detection using raw bitwise operations.
+A high-performance chess engine built from scratch in Java. This project bypasses traditional array-based board representations in favor of **Bitboards** (64-bit integer mapping) to achieve lightning-fast move generation and collision detection using raw bitwise operations.
 
 ## Current Progress
 
@@ -11,16 +13,21 @@ A chess engine built from scratch in Java. This project bypasses traditional arr
 * **Occupancy Tracking:** Maintained combined bitboards for White pieces, Black pieces, and all pieces to perform O(1) collision detection.
 
 ### 2. Move Generation
-The engine currently supports pseudo-legal move generation for the following pieces:
+The engine currently supports pseudo-legal move generation for all piece types:
 
 * **Pawns (White & Black):**
     * Calculates single pushes, double pushes, and diagonal captures simultaneously using bitwise shifts.
     * Implements File A and File H masks to prevent the "Wrap-Around Bug."
     * Utilizes Java's unsigned right shift (`>>>`) for Black pawns to prevent sign extension errors.
-* **Knights (White & Black):**
+* **Knights & Kings (Leaping Pieces):**
     * Utilizes **Pre-calculated Attack Look-Up Tables**.
-    * Calculates all 8 possible L-shapes for all 64 squares exactly once upon initialization.
-    * In-game move generation is reduced to an O(1) array lookup masked against friendly occupancies.
+    * Calculates all possible attack squares for all 64 board positions exactly once upon initialization.
+    * In-game move generation is reduced to an $O(1)$ array lookup masked against friendly occupancies.
+* **Rooks, Bishops, & Queens (Sliding Pieces):**
+    * Implemented **Magic Bitboards** for $O(1)$ sliding piece move generation, completely eliminating in-game `while` loops.
+    * Generates blocker masks that strategically exclude outer edges to compress the hash tables (e.g., 4096 combinations for Rooks, 512 for Bishops).
+    * Utilizes perfect hashing functions to map current board blocker occupancies to pre-calculated ray-casted attack tables.
+    * Queens efficiently reuse and combine (bitwise OR) the Rook and Bishop lookup tables.
 
 ### 3. Move Extraction & Bit-Twiddling
 * Implemented a highly optimized move extraction loop using `Long.numberOfTrailingZeros()` to identify target squares.
@@ -30,7 +37,7 @@ The engine currently supports pseudo-legal move generation for the following pie
 * **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
 
 ## Next Steps
-* [ ] Implement pre-calculated attack tables for the King.
-* [ ] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards or Ray Casting.
+* [x] Implement pre-calculated attack tables for the King.
+* [x] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards.
 * [ ] Build the `makeMove()` and `undoMove()` functions to transition board states.
 * [ ] Implement the Minimax algorithm with Alpha-Beta Pruning for the core search tree.
