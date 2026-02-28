@@ -18,9 +18,11 @@ public class MoveGen {
 
     // --- PRE-CALCULATED TABLES ---
     private final long[] knightAttacks = new long[64];
+    private final long[] kingAttacks = new long[64];
 
     public MoveGen() {
         initKnightAttacks();
+        initKingAttacks();
     }
 
     private void initKnightAttacks() {
@@ -40,6 +42,28 @@ public class MoveGen {
             attacks |= (knight >>> 6)  & NOT_AB_FILE;
 
             knightAttacks[square] = attacks;
+        }
+    }
+
+    private void initKingAttacks() {
+        for (int square = 0; square < 64; square++) {
+            long king = 1L << square;
+            long attacks = 0L;
+
+            // 1. Horizontal and Vertical
+            attacks |= (king << 8); // Up
+            attacks |= (king >>> 8); // Down
+            attacks |= (king & NOT_H_FILE) << 1; // Right (+1 index)
+            attacks |= (king & NOT_A_FILE) >>> 1; // Left (-1 index)
+
+            // 2. Diagonals
+            attacks |= (king & NOT_H_FILE) << 9; // Up-Right
+            attacks |= (king & NOT_A_FILE) << 7; // Up-Left
+            attacks |= (king & NOT_H_FILE) >>> 7; // Down-Right
+            attacks |= (king & NOT_A_FILE) >>> 9; // Down-Left
+
+            // Store the fully calculated attack bitboard in the array
+            kingAttacks[square] = attacks;
         }
     }
 
@@ -115,6 +139,40 @@ public class MoveGen {
             
             extractMoves(attacks, startSquare, moves);
             knights &= (knights - 1); 
+        }
+        return moves;
+    }
+
+    // --- KING MOVE GENERATION ---
+
+    public List<Move> generateWhiteKingMoves(Board board) {
+        List<Move> moves = new ArrayList<>();
+        long kingBoard = board.whiteKing; 
+        
+        // The King can move to any square that DOES NOT contain a White piece
+        long validSquares = ~board.whitePieces; 
+
+        if (kingBoard != 0) {
+            int startSquare = Long.numberOfTrailingZeros(kingBoard);
+            long attacks = kingAttacks[startSquare] & validSquares;
+            
+            extractMoves(attacks, startSquare, moves);
+        }
+        return moves;
+    }
+
+    public List<Move> generateBlackKingMoves(Board board) {
+        List<Move> moves = new ArrayList<>();
+        long kingBoard = board.blackKing; 
+        
+        // The King can move to any square that DOES NOT contain a Black piece
+        long validSquares = ~board.blackPieces; 
+
+        if (kingBoard != 0) {
+            int startSquare = Long.numberOfTrailingZeros(kingBoard);
+            long attacks = kingAttacks[startSquare] & validSquares;
+            
+            extractMoves(attacks, startSquare, moves);
         }
         return moves;
     }

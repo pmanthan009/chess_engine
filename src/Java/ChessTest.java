@@ -1,7 +1,7 @@
-/**
-* This is just a test file to test if the logic works after every change/addition.
-* It's commented out most of the times to avoid duplicate class names error.
-*/
+// /**
+// * This is just a test file to test if the logic works after every change/addition.
+// * It's commented out most of the times to avoid duplicate class names error.
+// */
 
 // import java.util.ArrayList;
 // import java.util.List;
@@ -53,21 +53,23 @@
 
 // // --- The Board Class ---
 // class Board {
-//     public long whitePawns, whiteKnights;
-//     public long blackPawns, blackKnights;
+//     public long whitePawns, whiteKnights, whiteKing;
+//     public long blackPawns, blackKnights, blackKing;
 //     public long whitePieces, blackPieces, allPieces;
 
 //     public Board() {
 //         // Standard starting positions
 //         whitePawns = 0x000000000000FF00L; 
 //         whiteKnights = 0x0000000000000042L; // B1 (bit 1) and G1 (bit 6)
+//         whiteKing = 0x0000000000000010L; // E1 (bit 4)
+//         blackKing = 0x0000000000000010L; // E8 (bit 60)
         
 //         blackPawns = 0x00FF000000000000L; 
 //         blackKnights = 0x4200000000000000L; // B8 (bit 57) and G8 (bit 62)
         
 //         // Group the pieces for collision detection
-//         whitePieces = whitePawns | whiteKnights;
-//         blackPieces = blackPawns | blackKnights;
+//         whitePieces = whitePawns | whiteKnights | whiteKing;
+//         blackPieces = blackPawns | blackKnights | blackKing;
 //         allPieces = whitePieces | blackPieces; 
 //     }
 // }
@@ -81,9 +83,11 @@
 
 //     // The Pre-calculated Look-Up Table
 //     private final long[] knightAttacks = new long[64];
+//     private final long[] kingAttacks = new long[64];
 
 //     public MoveGen() {
 //         initKnightAttacks();
+//         initKingAttacks();
 //     }
 
 //     private void initKnightAttacks() {
@@ -103,6 +107,28 @@
 //             attacks |= (knight >>> 6)  & NOT_AB_FILE;
 
 //             knightAttacks[square] = attacks;
+//         }
+//     }
+
+//     private void initKingAttacks() {
+//         for (int square = 0; square < 64; square++) {
+//             long king = 1L << square;
+//             long attacks = 0L;
+
+//             // 1. Horizontal and Vertical
+//             attacks |= (king << 8); // Up
+//             attacks |= (king >>> 8); // Down
+//             attacks |= (king & NOT_H_FILE) << 1; // Right (+1 index)
+//             attacks |= (king & NOT_A_FILE) >>> 1; // Left (-1 index)
+
+//             // 2. Diagonals
+//             attacks |= (king & NOT_H_FILE) << 9; // Up-Right
+//             attacks |= (king & NOT_A_FILE) << 7; // Up-Left
+//             attacks |= (king & NOT_H_FILE) >>> 7; // Down-Right
+//             attacks |= (king & NOT_A_FILE) >>> 9; // Down-Left
+
+//             // Store the fully calculated attack bitboard in the array
+//             kingAttacks[square] = attacks;
 //         }
 //     }
 
@@ -139,6 +165,41 @@
 //         }
 //         return moves;
 //     }
+
+//     // --- KING MOVE GENERATION ---
+
+//     public List<Move> generateWhiteKingMoves(Board board) {
+//         List<Move> moves = new ArrayList<>();
+//         long kingBoard = board.whiteKing; 
+        
+//         // The King can move to any square that DOES NOT contain a White piece
+//         long validSquares = ~board.whitePieces; 
+
+//         if (kingBoard != 0) {
+//             int startSquare = Long.numberOfTrailingZeros(kingBoard);
+//             long attacks = kingAttacks[startSquare] & validSquares;
+            
+//             extractMoves(attacks, startSquare, moves);
+//         }
+//         return moves;
+//     }
+
+//     public List<Move> generateBlackKingMoves(Board board) {
+//         List<Move> moves = new ArrayList<>();
+//         long kingBoard = board.blackKing; 
+        
+//         // The King can move to any square that DOES NOT contain a Black piece
+//         long validSquares = ~board.blackPieces; 
+
+//         if (kingBoard != 0) {
+//             int startSquare = Long.numberOfTrailingZeros(kingBoard);
+//             long attacks = kingAttacks[startSquare] & validSquares;
+            
+//             extractMoves(attacks, startSquare, moves);
+//         }
+//         return moves;
+//     }
+
 
 //     // --- OVERLOADED EXTRACT MOVES ---
     
