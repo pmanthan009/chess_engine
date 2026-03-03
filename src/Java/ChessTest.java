@@ -74,6 +74,48 @@ public class ChessTest {
         
         System.out.println("Total Queen moves found: " + queenMoves.size());
         printBitboard(queenAttacksBitboard);
+
+        // --- TEST MAKEMOVE AND UNDOMOVE ---
+        System.out.println("\n--- Testing makeMove() and undoMove() ---");
+        
+        // 1. Setup a fresh board
+        Board stateTestBoard = new Board();
+        stateTestBoard.whitePawns = 0L; stateTestBoard.whiteKnights = 0L; stateTestBoard.whiteBishops = 0L; stateTestBoard.whiteRooks = 0L; stateTestBoard.whiteQueens = 0L; stateTestBoard.whiteKing = 0L;
+        stateTestBoard.blackPawns = 0L; stateTestBoard.blackKnights = 0L; stateTestBoard.blackBishops = 0L; stateTestBoard.blackRooks = 0L; stateTestBoard.blackQueens = 0L; stateTestBoard.blackKing = 0L;
+
+        // Place White Queen on D4 (27) and Black Pawn on D7 (51)
+        stateTestBoard.whiteQueens = 1L << 27;
+        stateTestBoard.blackPawns = 1L << 51;
+        stateTestBoard.updateOccupancies();
+
+        System.out.println("1. BEFORE MOVE:");
+        System.out.println("White Queens Bitboard:");
+        printBitboard(stateTestBoard.whiteQueens);
+        System.out.println("Black Pawns Bitboard:");
+        printBitboard(stateTestBoard.blackPawns);
+
+        // 2. Execute the Capture
+        // Move from D4 (27) to D7 (51)
+        Move captureMove = new Move(27, 51); 
+        
+        // Note: Make sure your makeMove method is updated with the capture memory logic!
+        stateTestBoard.makeMove(captureMove, true); // true = White's turn
+
+        System.out.println("2. AFTER MOVE (Queen captures Pawn):");
+        System.out.println("Captured Piece ID recorded: " + captureMove.capturedPiece + " (Should be 1 for Pawn)");
+        System.out.println("White Queens Bitboard (Should be on D7):");
+        printBitboard(stateTestBoard.whiteQueens);
+        System.out.println("Black Pawns Bitboard (Should be completely empty):");
+        printBitboard(stateTestBoard.blackPawns);
+
+        // 3. Undo the Capture
+        stateTestBoard.undoMove(captureMove, true);
+
+        System.out.println("3. AFTER UNDO (Queen retreats, Pawn resurrected):");
+        System.out.println("White Queens Bitboard (Should be back on D4):");
+        printBitboard(stateTestBoard.whiteQueens);
+        System.out.println("Black Pawns Bitboard (Pawn should be back on D7!):");
+        printBitboard(stateTestBoard.blackPawns);
     }
 
     public static void printBitboard(long bitboard) {

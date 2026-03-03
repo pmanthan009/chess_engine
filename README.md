@@ -10,7 +10,7 @@ A high-performance chess engine built from scratch in Java. This project bypasse
 ### 1. Board Representation
 * **Bitboard Architecture:** The board is represented using 64-bit `long` primitives, where each bit maps to a specific square on the 8x8 chessboard.
 * **Hexadecimal Initialization:** The standard starting position is initialized using compressed Hex values for efficient memory allocation.
-* **Occupancy Tracking:** Maintained combined bitboards for White pieces, Black pieces, and all pieces to perform O(1) collision detection.
+* **Occupancy Tracking:** Maintained combined bitboards for White pieces, Black pieces, and all pieces to perform $O(1)$ collision detection.
 
 ### 2. Move Generation
 The engine currently supports pseudo-legal move generation for all piece types:
@@ -33,11 +33,14 @@ The engine currently supports pseudo-legal move generation for all piece types:
 * Implemented a highly optimized move extraction loop using `Long.numberOfTrailingZeros()` to identify target squares.
 * Utilizes the `targetBitboard &= (targetBitboard - 1)` trick to instantly clear the least significant bit, avoiding unnecessary loop iterations.
 
-### 4. Debugging Utilities
+### 4. Board State Management
+* Implemented `makeMove()` and `undoMove()` functions to physically transition the board between states using extremely fast bitwise XOR (`^`) operations.
+* Engineered a memory-aware `Move` object that records captured piece IDs, allowing the engine to perfectly reconstruct and resurrect captured pieces during state reversions.
+* Established the foundational state-space traversal mechanics required for deep search tree algorithms without causing board state corruption.
+
+### 5. Debugging Utilities
 * **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
 
 ## Next Steps
-* [x] Implement pre-calculated attack tables for the King.
-* [x] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards.
-* [ ] Build the `makeMove()` and `undoMove()` functions to transition board states.
+* [ ] Develop a static board evaluation function (e.g., piece values, piece-square tables).
 * [ ] Implement the Minimax algorithm with Alpha-Beta Pruning for the core search tree.

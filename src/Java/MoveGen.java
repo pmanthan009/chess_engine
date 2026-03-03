@@ -609,14 +609,16 @@ public class MoveGen {
 class Move {
     public int startSquare;
     public int targetSquare;
+    public int capturedPiece; // 0 = None, 1 = Pawn, 2 = Knight, 3 = Bishop, 4 = Rook, 5 = Queen
 
     public Move(int startSquare, int targetSquare) {
         this.startSquare = startSquare;
         this.targetSquare = targetSquare;
+        this.capturedPiece = 0;
     }
 
     @Override
     public String toString() {
-        return "Move from " + startSquare + " to " + targetSquare;
+        return "Move from " + startSquare + " to " + targetSquare + (capturedPiece != 0 ? " (Capture)" : "");
     }
 }
