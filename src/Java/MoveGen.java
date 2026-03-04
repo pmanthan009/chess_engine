@@ -167,7 +167,7 @@ public class MoveGen {
 
             // Generate the magic number specifically for this square!
             bishopMagics[square] = findMagic(square, bishopBits, true);
-            
+
             int bishopCombinations = 1 << bishopBits; // 2^bishopBits (max 512)
 
             for (int i = 0; i < bishopCombinations; i++) {
@@ -680,27 +680,5 @@ public class MoveGen {
 
     public long getBishopMask(int square) {
         return bishopMasks[square];
-    }
-}
-
-/**
- * A simple Move structure to hold the start and end coordinates.
- * In a full engine, you'd expand this to track things like promotions or
- * captured pieces.
- */
-class Move {
-    public int startSquare;
-    public int targetSquare;
-    public int capturedPiece; // 0 = None, 1 = Pawn, 2 = Knight, 3 = Bishop, 4 = Rook, 5 = Queen
-
-    public Move(int startSquare, int targetSquare) {
-        this.startSquare = startSquare;
-        this.targetSquare = targetSquare;
-        this.capturedPiece = 0;
-    }
-
-    @Override
-    public String toString() {
-        return "Move from " + startSquare + " to " + targetSquare + (capturedPiece != 0 ? " (Capture)" : "");
     }
 }
