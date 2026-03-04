@@ -42,5 +42,6 @@ The engine currently supports pseudo-legal move generation for all piece types:
 * **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
 
 ## Next Steps
+* [ ] Add special moves i.e Castling, En Passant & Pawn-promotions.
 * [ ] Develop a static board evaluation function (e.g., piece values, piece-square tables).
 * [ ] Implement the Minimax algorithm with Alpha-Beta Pruning for the core search tree.

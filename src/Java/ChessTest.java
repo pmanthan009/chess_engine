@@ -116,6 +116,39 @@ public class ChessTest {
         printBitboard(stateTestBoard.whiteQueens);
         System.out.println("Black Pawns Bitboard (Pawn should be back on D7!):");
         printBitboard(stateTestBoard.blackPawns);
+
+        // --- TEST SQUARE ATTACKED ---
+        System.out.println("\n--- Testing isSquareAttacked() ---");
+        
+        // 1. Setup a fresh board
+        Board attackTestBoard = new Board();
+        attackTestBoard.whitePawns = 0L; attackTestBoard.whiteKnights = 0L; attackTestBoard.whiteBishops = 0L; attackTestBoard.whiteRooks = 0L; attackTestBoard.whiteQueens = 0L; attackTestBoard.whiteKing = 0L;
+        attackTestBoard.blackPawns = 0L; attackTestBoard.blackKnights = 0L; attackTestBoard.blackBishops = 0L; attackTestBoard.blackRooks = 0L; attackTestBoard.blackQueens = 0L; attackTestBoard.blackKing = 0L;
+
+        // 2. Place a White Knight on D4 (Index 27) and a Black Rook on H8 (Index 63)
+        attackTestBoard.whiteKnights = 1L << 27;
+        attackTestBoard.blackRooks = 1L << 63;
+        attackTestBoard.updateOccupancies();
+
+        System.out.println("Board Setup: White Knight on D4, Black Rook on H8");
+
+        // 3. Ask the engine about specific squares
+        // A Knight on D4 attacks C6 (42) but DOES NOT attack D5 (35)
+        boolean isC6AttackedByWhite = generator.isSquareAttacked(42, true, attackTestBoard); 
+        boolean isD5AttackedByWhite = generator.isSquareAttacked(35, true, attackTestBoard); 
+        
+        System.out.println("Is C6 attacked by White? " + isC6AttackedByWhite + " (Expected: true)");
+        System.out.println("Is D5 attacked by White? " + isD5AttackedByWhite + " (Expected: false)");
+
+        // A Rook on H8 attacks down the H-file to H1 (7) and across the 8th rank to A8 (56)
+        // It DOES NOT attack G7 (54)
+        boolean isH1AttackedByBlack = generator.isSquareAttacked(7, false, attackTestBoard); 
+        boolean isA8AttackedByBlack = generator.isSquareAttacked(56, false, attackTestBoard); 
+        boolean isG7AttackedByBlack = generator.isSquareAttacked(54, false, attackTestBoard); 
+
+        System.out.println("Is H1 attacked by Black? " + isH1AttackedByBlack + " (Expected: true)");
+        System.out.println("Is A8 attacked by Black? " + isA8AttackedByBlack + " (Expected: true)");
+        System.out.println("Is G7 attacked by Black? " + isG7AttackedByBlack + " (Expected: false)");
     }
 
     public static void printBitboard(long bitboard) {

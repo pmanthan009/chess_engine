@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.Arrays;
 
 public class MoveGen {
 
@@ -33,49 +35,64 @@ public class MoveGen {
     private final long[][] bishopAttacks = new long[64][512]; // Bishops have fewer blockers
 
     // 3. The Magic Numbers
-    private static final long[] ROOK_MAGICS = {
-        0x8a80104000800020L, 0x140002000100040L, 0x2801880a0017001L, 0x100081001000420L,
-        0x200020010080420L, 0x3001c0002010008L, 0x8480008002000100L, 0x2080088004402900L,
-        0x800098204000L, 0x2024401000200040L, 0x100802000801000L, 0x120800800801000L,
-        0x208808088000400L, 0x2802200800400L, 0x2200800100020080L, 0x801000060821100L,
-        0x80044006422000L, 0x100808020004000L, 0x12108a0010204200L, 0x140848010000802L,
-        0x481828014002800L, 0x8094004002004100L, 0x4010040010010802L, 0x200040006043300L,
-        0x804040008008080L, 0x800002800400800L, 0x200028104220200L, 0x11001401040202L,
-        0x200040E08040050L, 0x1001A0011002020L, 0x400202100800800L, 0x800202001008100L,
-        0x400200100208100L, 0x20480240060A00L, 0x810100420800010L, 0x1002000A08012010L,
-        0x100408100240000L, 0x100000100210004L, 0x120102040020200L, 0x100810208010L,
-        0x100401004010L, 0x402002004000801L, 0x100100121004200L, 0x20002010400080L,
-        0x200008204000400L, 0x801210000204000L, 0x201020800040100L, 0x204010020004L,
-        0x40100200004L, 0x8000104004000L, 0x1008008002000L, 0x2020208004000L,
-        0x102002008200L, 0x2021004010400L, 0x10400120100L, 0x10800201000L,
-        0x8000010400L, 0x4200002000L, 0x100800200L, 0x204010000L,
-        0x4080020L, 0x1020010L, 0x80080L, 0x20040L
-    };
+    private final long[] rookMagics = new long[64];
+    private final long[] bishopMagics = new long[64];
 
-    private static final long[] BISHOP_MAGICS = {
-        0x40040844404084L, 0x2004208A004208L, 0x10190041080202L, 0x108060845042010L,
-        0x581104180800210L, 0x2112080446200010L, 0x1080820820060210L, 0x20041420100804L,
-        0x410810049020004L, 0x10021104080202L, 0x80010405020102L, 0x14010404010202L,
-        0x10004020810100L, 0x1121020804210L, 0x20002011080400L, 0x10800804104104L,
-        0x40080208041042L, 0x811080801041010L, 0x40001021104014L, 0x80000410410400L,
-        0x4040008041000L, 0x4002082004400L, 0x8020140201100L, 0x11100404104104L,
-        0x10400200104242L, 0x2014010040101L, 0x4004010020402L, 0x8000104004004L,
-        0x1002082001010L, 0x4020004010404L, 0x4080104010444L, 0x20808010104202L,
-        0x104040804002L, 0x2040410104101L, 0x8020800040104L, 0x10010400100101L,
-        0x204004011040L, 0x10210100402L, 0x208040080100L, 0x2004010080041L,
-        0x4104004041L, 0x820101002081L, 0x204101020800L, 0x140410040100L,
-        0x420410000100L, 0x1082100400L, 0x1010100400L, 0x1001041000L,
-        0x20204100L, 0x20804080L, 0x40210100L, 0x80100040L,
-        0x8002010L, 0x4001008L, 0x401000L, 0x82004L,
-        0x10020L, 0x20010L, 0x1001L, 0x10002L,
-        0x4200L, 0x80L, 0x100L, 0x2L
-    };
+    // --- CONSTRUCTOR ---
 
     public MoveGen() {
         initKnightAttacks();
         initKingAttacks();
         initSlidingMasks();
         initMagicBitboards();
+    }
+
+    // --- MAGIC BITBOARD GENERATOR ---
+
+    private long randomSparse(Random random) {
+        // ANDing three random longs drastically reduces the number of '1' bits, 
+        // creating the sparse numbers needed for perfect hashing.
+        return random.nextLong() & random.nextLong() & random.nextLong();
+    }
+
+    private long findMagic(int square, int bits, boolean isBishop) {
+        long mask = isBishop ? bishopMasks[square] : rookMasks[square];
+        int numCombinations = 1 << bits;
+        long[] occupancies = new long[numCombinations];
+        long[] attacks = new long[numCombinations];
+        long[] used = new long[4096]; // Max size for Rook combinations
+        
+        // 1. Pre-calculate all occupancies and their true Ray-Casted attacks
+        for (int i = 0; i < numCombinations; i++) {
+            occupancies[i] = setOccupancy(i, bits, mask);
+            attacks[i] = isBishop ? bishopAttacksOnTheFly(square, occupancies[i]) : rookAttacksOnTheFly(square, occupancies[i]);
+        }
+        
+        Random random = new Random(100); // Fixed seed so the engine boots up consistently
+        
+        // 2. Brute-force a Magic Number
+        for (int k = 0; k < 100000000; k++) {
+            long magic = randomSparse(random);
+            Arrays.fill(used, 0L);
+            boolean fail = false;
+            
+            // 3. Test the Magic Hash against all combinations
+            for (int i = 0; !fail && i < numCombinations; i++) {
+                int magicIndex = (int) ((occupancies[i] * magic) >>> (64 - bits));
+                
+                if (used[magicIndex] == 0L) {
+                    used[magicIndex] = attacks[i]; // Slot is empty, save the attack
+                } else if (used[magicIndex] != attacks[i]) {
+                    fail = true; // Hash collision! This magic number is bad.
+                }
+            }
+            
+            if (!fail) {
+                return magic; // We found a perfect hash!
+            }
+        }
+        System.out.println("Failed to find magic for square " + square);
+        return 0L;
     }
 
     private void initKnightAttacks() {
@@ -132,22 +149,30 @@ public class MoveGen {
             // --- ROOKS ---
             long rookMask = rookMasks[square];
             int rookBits = Long.bitCount(rookMask);
+
+            // Generate the magic number specifically for this square!
+            rookMagics[square] = findMagic(square, rookBits, false);
+
             int rookCombinations = 1 << rookBits; // 2^rookBits (max 4096)
 
             for (int i = 0; i < rookCombinations; i++) {
                 long blockers = setOccupancy(i, rookBits, rookMask);
-                int magicIndex = magicHash(blockers, ROOK_MAGICS[square], rookBits);
+                int magicIndex = magicHash(blockers, rookMagics[square], rookBits);
                 rookAttacks[square][magicIndex] = rookAttacksOnTheFly(square, blockers);
             }
 
             // --- BISHOPS ---
             long bishopMask = bishopMasks[square];
             int bishopBits = Long.bitCount(bishopMask);
+
+            // Generate the magic number specifically for this square!
+            bishopMagics[square] = findMagic(square, bishopBits, true);
+            
             int bishopCombinations = 1 << bishopBits; // 2^bishopBits (max 512)
 
             for (int i = 0; i < bishopCombinations; i++) {
                 long blockers = setOccupancy(i, bishopBits, bishopMask);
-                int magicIndex = magicHash(blockers, BISHOP_MAGICS[square], bishopBits);
+                int magicIndex = magicHash(blockers, bishopMagics[square], bishopBits);
                 bishopAttacks[square][magicIndex] = bishopAttacksOnTheFly(square, blockers);
             }
         }
@@ -275,7 +300,7 @@ public class MoveGen {
             long blockers = board.allPieces & rookMasks[startSquare];
             
             // 2. Hash it to find the index
-            int magicIndex = magicHash(blockers, ROOK_MAGICS[startSquare], Long.bitCount(rookMasks[startSquare]));
+            int magicIndex = magicHash(blockers, rookMagics[startSquare], Long.bitCount(rookMasks[startSquare]));
             
             // 3. O(1) Lookup and mask out friendly pieces
             long attacks = rookAttacks[startSquare][magicIndex] & validSquares;
@@ -298,7 +323,7 @@ public class MoveGen {
             long blockers = board.allPieces & rookMasks[startSquare];
             
             // 2. Hash it to find the index
-            int magicIndex = magicHash(blockers, ROOK_MAGICS[startSquare], Long.bitCount(rookMasks[startSquare]));
+            int magicIndex = magicHash(blockers, rookMagics[startSquare], Long.bitCount(rookMasks[startSquare]));
             
             // 3. O(1) Lookup and mask out friendly pieces
             long attacks = rookAttacks[startSquare][magicIndex] & validSquares;
@@ -321,7 +346,7 @@ public class MoveGen {
             long blockers = board.allPieces & bishopMasks[startSquare];
             
             // 2. Hash it to find the index
-            int magicIndex = magicHash(blockers, BISHOP_MAGICS[startSquare], Long.bitCount(bishopMasks[startSquare]));
+            int magicIndex = magicHash(blockers, bishopMagics[startSquare], Long.bitCount(bishopMasks[startSquare]));
             
             // 3. O(1) Lookup and mask out friendly pieces
             long attacks = bishopAttacks[startSquare][magicIndex] & validSquares;
@@ -344,7 +369,7 @@ public class MoveGen {
             long blockers = board.allPieces & bishopMasks[startSquare];
             
             // 2. Hash it to find the index
-            int magicIndex = magicHash(blockers, BISHOP_MAGICS[startSquare], Long.bitCount(bishopMasks[startSquare]));
+            int magicIndex = magicHash(blockers, bishopMagics[startSquare], Long.bitCount(bishopMasks[startSquare]));
             
             // 3. O(1) Lookup and mask out friendly pieces
             long attacks = bishopAttacks[startSquare][magicIndex] & validSquares;
@@ -367,12 +392,12 @@ public class MoveGen {
             
             // 1. Get Rook-style attacks
             long rookBlockers = board.allPieces & rookMasks[startSquare];
-            int rookIndex = magicHash(rookBlockers, ROOK_MAGICS[startSquare], Long.bitCount(rookMasks[startSquare]));
+            int rookIndex = magicHash(rookBlockers, rookMagics[startSquare], Long.bitCount(rookMasks[startSquare]));
             long rookAttacksBoard = rookAttacks[startSquare][rookIndex];
 
             // 2. Get Bishop-style attacks
             long bishopBlockers = board.allPieces & bishopMasks[startSquare];
-            int bishopIndex = magicHash(bishopBlockers, BISHOP_MAGICS[startSquare], Long.bitCount(bishopMasks[startSquare]));
+            int bishopIndex = magicHash(bishopBlockers, bishopMagics[startSquare], Long.bitCount(bishopMasks[startSquare]));
             long bishopAttacksBoard = bishopAttacks[startSquare][bishopIndex];
 
             // 3. Combine them and mask out friendly pieces
@@ -394,12 +419,12 @@ public class MoveGen {
             
             // 1. Get Rook-style attacks
             long rookBlockers = board.allPieces & rookMasks[startSquare];
-            int rookIndex = magicHash(rookBlockers, ROOK_MAGICS[startSquare], Long.bitCount(rookMasks[startSquare]));
+            int rookIndex = magicHash(rookBlockers, rookMagics[startSquare], Long.bitCount(rookMasks[startSquare]));
             long rookAttacksBoard = rookAttacks[startSquare][rookIndex];
 
             // 2. Get Bishop-style attacks
             long bishopBlockers = board.allPieces & bishopMasks[startSquare];
-            int bishopIndex = magicHash(bishopBlockers, BISHOP_MAGICS[startSquare], Long.bitCount(bishopMasks[startSquare]));
+            int bishopIndex = magicHash(bishopBlockers, bishopMagics[startSquare], Long.bitCount(bishopMasks[startSquare]));
             long bishopAttacksBoard = bishopAttacks[startSquare][bishopIndex];
 
             // 3. Combine them and mask out friendly pieces
@@ -589,6 +614,63 @@ public class MoveGen {
      */
     private int magicHash(long blockers, long magic, int bits) {
         return (int) ((blockers * magic) >>> (64 - bits));
+    }
+
+    /**
+     * Checks if a specific square is attacked by the ENEMY color.
+     * @param square The square index to check (0-63)
+     * @param byWhite True if we are checking if WHITE is attacking the square (so the square belongs to Black).
+     * @param board The current board state
+     * @return True if the square is under attack, false if it is safe.
+     */
+    public boolean isSquareAttacked(int square, boolean byWhite, Board board) {
+        long squareBit = 1L << square;
+
+        if (byWhite) {
+            // 1. Attacked by White Pawns? (A Black pawn on this square would attack UP-LEFT and UP-RIGHT)
+            // If we shift this square DOWN-LEFT or DOWN-RIGHT, do we hit a White Pawn?
+            if ((((squareBit & NOT_A_FILE) >>> 9) & board.whitePawns) != 0) return true;
+            if ((((squareBit & NOT_H_FILE) >>> 7) & board.whitePawns) != 0) return true;
+
+            // 2. Attacked by White Knights?
+            if ((knightAttacks[square] & board.whiteKnights) != 0) return true;
+
+            // 3. Attacked by White King?
+            if ((kingAttacks[square] & board.whiteKing) != 0) return true;
+
+            // 4. Attacked by White Bishops or Queens? (Using Magic Bitboards!)
+            long bishopBlockers = board.allPieces & bishopMasks[square];
+            int bishopIndex = magicHash(bishopBlockers, bishopMagics[square], Long.bitCount(bishopMasks[square]));
+            if ((bishopAttacks[square][bishopIndex] & (board.whiteBishops | board.whiteQueens)) != 0) return true;
+
+            // 5. Attacked by White Rooks or Queens? (Using Magic Bitboards!)
+            long rookBlockers = board.allPieces & rookMasks[square];
+            int rookIndex = magicHash(rookBlockers, rookMagics[square], Long.bitCount(rookMasks[square]));
+            if ((rookAttacks[square][rookIndex] & (board.whiteRooks | board.whiteQueens)) != 0) return true;
+
+        } else {
+            // 1. Attacked by Black Pawns? (A White pawn on this square would attack DOWN-LEFT and DOWN-RIGHT)
+            if ((((squareBit & NOT_H_FILE) << 9) & board.blackPawns) != 0) return true;
+            if ((((squareBit & NOT_A_FILE) << 7) & board.blackPawns) != 0) return true;
+
+            // 2. Attacked by Black Knights?
+            if ((knightAttacks[square] & board.blackKnights) != 0) return true;
+
+            // 3. Attacked by Black King?
+            if ((kingAttacks[square] & board.blackKing) != 0) return true;
+
+            // 4. Attacked by Black Bishops or Queens?
+            long bishopBlockers = board.allPieces & bishopMasks[square];
+            int bishopIndex = magicHash(bishopBlockers, bishopMagics[square], Long.bitCount(bishopMasks[square]));
+            if ((bishopAttacks[square][bishopIndex] & (board.blackBishops | board.blackQueens)) != 0) return true;
+
+            // 5. Attacked by Black Rooks or Queens?
+            long rookBlockers = board.allPieces & rookMasks[square];
+            int rookIndex = magicHash(rookBlockers, rookMagics[square], Long.bitCount(rookMasks[square]));
+            if ((rookAttacks[square][rookIndex] & (board.blackRooks | board.blackQueens)) != 0) return true;
+        }
+
+        return false; // If we survive all checks, the square is perfectly safe!
     }
 
     // --- GETTERS & SETTERS ---
