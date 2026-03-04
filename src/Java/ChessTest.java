@@ -149,6 +149,96 @@ public class ChessTest {
         System.out.println("Is H1 attacked by Black? " + isH1AttackedByBlack + " (Expected: true)");
         System.out.println("Is A8 attacked by Black? " + isA8AttackedByBlack + " (Expected: true)");
         System.out.println("Is G7 attacked by Black? " + isG7AttackedByBlack + " (Expected: false)");
+
+        // --- TEST CASTLING ---
+        System.out.println("\n--- Testing Castling (O-O) ---");
+        
+        Board castleTestBoard = new Board();
+        // Clear all pieces except the King and Rooks
+        castleTestBoard.whitePawns = 0L; castleTestBoard.whiteKnights = 0L; castleTestBoard.whiteBishops = 0L; castleTestBoard.whiteQueens = 0L;
+        castleTestBoard.blackPawns = 0L; castleTestBoard.blackKnights = 0L; castleTestBoard.blackBishops = 0L; castleTestBoard.blackRooks = 0L; castleTestBoard.blackQueens = 0L; castleTestBoard.blackKing = 0L;
+        
+        // 1. Setup: King on E1 (4), Rooks on A1 (0) and H1 (7)
+        castleTestBoard.whiteKing = 1L << 4;
+        castleTestBoard.whiteRooks = (1L << 0) | (1L << 7);
+        castleTestBoard.updateOccupancies();
+        
+        // Ensure Castling Rights are true
+        castleTestBoard.whiteCanCastleKingside = true;
+        castleTestBoard.whiteCanCastleQueenside = true;
+
+        // 2. Generate Moves
+        List<Move> kingMoves = generator.generateWhiteKingMoves(castleTestBoard);
+        
+        Move kingsideCastle = null;
+        System.out.println("Valid King Moves:");
+        for(Move m : kingMoves) {
+            System.out.println(m);
+            // Catch the specific Kingside Castle move
+            if(m.isCastle && m.targetSquare == 6) {
+                kingsideCastle = m;
+            }
+        }
+
+        // 3. Execute and Undo
+        if (kingsideCastle != null) {
+            System.out.println("\nExecuting Kingside Castle...");
+            castleTestBoard.makeMove(kingsideCastle, true);
+            
+            System.out.println("After Castle:");
+            System.out.println("King Bitboard (Should be on G1):");
+            printBitboard(castleTestBoard.whiteKing);
+            System.out.println("Rooks Bitboard (Should be on A1 and F1! H1 is empty):");
+            printBitboard(castleTestBoard.whiteRooks);
+            
+            System.out.println("\nUndoing Kingside Castle...");
+            castleTestBoard.undoMove(kingsideCastle, true);
+            
+            System.out.println("After Undo:");
+            System.out.println("King Bitboard (Should be back on E1):");
+            printBitboard(castleTestBoard.whiteKing);
+            System.out.println("Rooks Bitboard (Should be back on A1 and H1):");
+            printBitboard(castleTestBoard.whiteRooks);
+        } else {
+            System.out.println("ERROR: Kingside Castle move not found!");
+        }
+
+        // --- TEST CASTLING THROUGH ATTACKED SQUARE ---
+        System.out.println("\n--- Testing Castling Through Check ---");
+        
+        Board attackCastleBoard = new Board();
+        // Clear all pieces
+        attackCastleBoard.whitePawns = 0L; attackCastleBoard.whiteKnights = 0L; attackCastleBoard.whiteBishops = 0L; attackCastleBoard.whiteQueens = 0L;
+        attackCastleBoard.blackPawns = 0L; attackCastleBoard.blackKnights = 0L; attackCastleBoard.blackBishops = 0L; attackCastleBoard.blackRooks = 0L; attackCastleBoard.blackQueens = 0L; attackCastleBoard.blackKing = 0L;
+        
+        // 1. Setup: King on E1 (4), White Rooks on A1 (0) and H1 (7)
+        attackCastleBoard.whiteKing = 1L << 4;
+        attackCastleBoard.whiteRooks = (1L << 0) | (1L << 7);
+        
+        // 2. Place a Black Rook on F8 (61) to attack F1 (5)!
+        attackCastleBoard.blackRooks = 1L << 61;
+        attackCastleBoard.updateOccupancies();
+        
+        // Ensure Castling Rights are true
+        attackCastleBoard.whiteCanCastleKingside = true;
+        attackCastleBoard.whiteCanCastleQueenside = true;
+
+        // 3. Generate Moves
+        List<Move> blockedKingMoves = generator.generateWhiteKingMoves(attackCastleBoard);
+        
+        boolean foundKingside = false;
+        boolean foundQueenside = false;
+        
+        System.out.println("Valid King Moves with F1 under attack by Black Rook:");
+        for(Move m : blockedKingMoves) {
+            System.out.println(m);
+            if(m.isCastle && m.targetSquare == 6) foundKingside = true; // G1
+            if(m.isCastle && m.targetSquare == 2) foundQueenside = true; // C1
+        }
+
+        System.out.println("\nResults:");
+        System.out.println("Kingside Castle Available (Should be false!): " + foundKingside);
+        System.out.println("Queenside Castle Available (Should be true): " + foundQueenside);
     }
 
     public static void printBitboard(long bitboard) {

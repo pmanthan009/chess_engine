@@ -94,6 +94,15 @@ public class Board {
                 whiteCanCastleQueenside = false; // King moved, lost all rights
             }
 
+            // --- CASTLING ROOK TELEPORT ---
+            if (move.isCastle) {
+                if (move.targetSquare == 6) {
+                    whiteRooks ^= (1L << 7) | (1L << 5); // Kingside: H1 to F1
+                } else if (move.targetSquare == 2) {
+                    whiteRooks ^= (1L << 0) | (1L << 3); // Queenside: A1 to D1
+                }
+            }
+
             // 2. Handle Captures: If Black has a piece on the target square, remove it
             if ((blackPieces & targetMask) != 0) {
                 long captureMask = ~targetMask;
@@ -146,6 +155,15 @@ public class Board {
                 blackCanCastleQueenside = false; // King moved, lost all rights
             }
 
+            // --- CASTLING ROOK TELEPORT ---
+            if (move.isCastle) {
+                if (move.targetSquare == 62) {
+                    blackRooks ^= (1L << 63) | (1L << 61); // Kingside: H8 to F8
+                } else if (move.targetSquare == 58) {
+                    blackRooks ^= (1L << 56) | (1L << 59); // Queenside: A8 to D8
+                }
+            }
+
             // 2. Handle Captures: If White has a piece on the target square, remove it
             if ((whitePieces & targetMask) != 0) {
                 long captureMask = ~targetMask;
@@ -190,18 +208,27 @@ public class Board {
 
         if (isWhite) {
             // 1. Move the White piece back
-            if ((whitePawns & targetMask) != 0)
+            if ((whitePawns & targetMask) != 0) {
                 whitePawns ^= moveMask;
-            else if ((whiteKnights & targetMask) != 0)
+            } else if ((whiteKnights & targetMask) != 0) {
                 whiteKnights ^= moveMask;
-            else if ((whiteBishops & targetMask) != 0)
+            } else if ((whiteBishops & targetMask) != 0) {
                 whiteBishops ^= moveMask;
-            else if ((whiteRooks & targetMask) != 0)
+            } else if ((whiteRooks & targetMask) != 0) {
                 whiteRooks ^= moveMask;
-            else if ((whiteQueens & targetMask) != 0)
+            } else if ((whiteQueens & targetMask) != 0) {
                 whiteQueens ^= moveMask;
-            else if ((whiteKing & targetMask) != 0)
+            } else if ((whiteKing & targetMask) != 0) {
                 whiteKing ^= moveMask;
+            }
+            // --- REVERSE CASTLING ROOK TELEPORT ---
+            if (move.isCastle) {
+                if (move.targetSquare == 6) {
+                    whiteRooks ^= (1L << 7) | (1L << 5); // Kingside: F1 back to H1
+                } else if (move.targetSquare == 2) {
+                    whiteRooks ^= (1L << 0) | (1L << 3); // Queenside: D1 back to A1
+                }
+            }
 
             // 2. Resurrect the captured Black piece (if any)
             if (move.capturedPiece != 0) {
@@ -218,19 +245,28 @@ public class Board {
             }
         } else {
             // 1. Move the Black piece back
-            if ((blackPawns & targetMask) != 0)
+            if ((blackPawns & targetMask) != 0) {
                 blackPawns ^= moveMask;
-            else if ((blackKnights & targetMask) != 0)
+            } else if ((blackKnights & targetMask) != 0) {
                 blackKnights ^= moveMask;
-            else if ((blackBishops & targetMask) != 0)
+            } else if ((blackBishops & targetMask) != 0) {
                 blackBishops ^= moveMask;
-            else if ((blackRooks & targetMask) != 0)
+            } else if ((blackRooks & targetMask) != 0) {
                 blackRooks ^= moveMask;
-            else if ((blackQueens & targetMask) != 0)
+            } else if ((blackQueens & targetMask) != 0) {
                 blackQueens ^= moveMask;
-            else if ((blackKing & targetMask) != 0)
+            } else if ((blackKing & targetMask) != 0) {
                 blackKing ^= moveMask;
-
+            }
+            // --- REVERSE CASTLING ROOK TELEPORT ---
+            if (move.isCastle) {
+                if (move.targetSquare == 62) {
+                    blackRooks ^= (1L << 63) | (1L << 61); // Kingside: F8 back to H8
+                } else if (move.targetSquare == 58) {
+                    blackRooks ^= (1L << 56) | (1L << 59); // Queenside: D8 back to A8
+                }
+            }
+            
             // 2. Resurrect the captured White piece (if any)
             if (move.capturedPiece != 0) {
                 if (move.capturedPiece == 1)
@@ -252,7 +288,7 @@ public class Board {
         this.blackCanCastleKingside = move.prevBlackCanCastleKingside;
         this.blackCanCastleQueenside = move.prevBlackCanCastleQueenside;
         this.enPassantTarget = move.prevEnPassantTarget;
-        
+
         // 3. Update the occupancy summary boards
         updateOccupancies();
     }

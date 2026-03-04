@@ -259,8 +259,6 @@ public class MoveGen {
     public List<Move> generateWhiteKingMoves(Board board) {
         List<Move> moves = new ArrayList<>();
         long kingBoard = board.whiteKing; 
-        
-        // The King can move to any square that DOES NOT contain a White piece
         long validSquares = ~board.whitePieces; 
 
         if (kingBoard != 0) {
@@ -268,6 +266,45 @@ public class MoveGen {
             long attacks = kingAttacks[startSquare] & validSquares;
             
             extractMoves(attacks, startSquare, moves);
+
+            // --- CASTLING ---
+            // Ensure the King is on its starting square (E1 = 4)
+            if (startSquare == 4) {
+                // Kingside (O-O): King goes to G1 (6), Rook goes to F1 (5)
+                if (board.whiteCanCastleKingside) {
+                    long f1g1Mask = (1L << 5) | (1L << 6);
+                    // 1. Are F1 and G1 empty?
+                    if ((board.allPieces & f1g1Mask) == 0) {
+                        // 2. Are E1, F1, and G1 safe from Black attacks?
+                        if (!isSquareAttacked(4, false, board) && 
+                            !isSquareAttacked(5, false, board) && 
+                            !isSquareAttacked(6, false, board)) {
+                            
+                            Move castleMove = new Move(4, 6);
+                            castleMove.isCastle = true;
+                            moves.add(castleMove);
+                        }
+                    }
+                }
+                
+                // Queenside (O-O-O): King goes to C1 (2), Rook goes to D1 (3)
+                if (board.whiteCanCastleQueenside) {
+                    long b1c1d1Mask = (1L << 1) | (1L << 2) | (1L << 3);
+                    // 1. Are B1, C1, and D1 empty?
+                    if ((board.allPieces & b1c1d1Mask) == 0) {
+                        // 2. Are E1, D1, and C1 safe from Black attacks? 
+                        // Note: B1 does not need to be safe, just empty!
+                        if (!isSquareAttacked(4, false, board) && 
+                            !isSquareAttacked(3, false, board) && 
+                            !isSquareAttacked(2, false, board)) {
+                            
+                            Move castleMove = new Move(4, 2);
+                            castleMove.isCastle = true;
+                            moves.add(castleMove);
+                        }
+                    }
+                }
+            }
         }
         return moves;
     }
@@ -275,8 +312,6 @@ public class MoveGen {
     public List<Move> generateBlackKingMoves(Board board) {
         List<Move> moves = new ArrayList<>();
         long kingBoard = board.blackKing; 
-        
-        // The King can move to any square that DOES NOT contain a Black piece
         long validSquares = ~board.blackPieces; 
 
         if (kingBoard != 0) {
@@ -284,10 +319,45 @@ public class MoveGen {
             long attacks = kingAttacks[startSquare] & validSquares;
             
             extractMoves(attacks, startSquare, moves);
+
+            // --- CASTLING ---
+            // Ensure the King is on its starting square (E8 = 60)
+            if (startSquare == 60) {
+                // Kingside (O-O): King goes to G8 (62), Rook goes to F8 (61)
+                if (board.blackCanCastleKingside) {
+                    long f8g8Mask = (1L << 61) | (1L << 62);
+                    if ((board.allPieces & f8g8Mask) == 0) {
+                        // Are E8, F8, and G8 safe from White attacks?
+                        if (!isSquareAttacked(60, true, board) && 
+                            !isSquareAttacked(61, true, board) && 
+                            !isSquareAttacked(62, true, board)) {
+                            
+                            Move castleMove = new Move(60, 62);
+                            castleMove.isCastle = true;
+                            moves.add(castleMove);
+                        }
+                    }
+                }
+                
+                // Queenside (O-O-O): King goes to C8 (58), Rook goes to D8 (59)
+                if (board.blackCanCastleQueenside) {
+                    long b8c8d8Mask = (1L << 57) | (1L << 58) | (1L << 59);
+                    if ((board.allPieces & b8c8d8Mask) == 0) {
+                        // Are E8, D8, and C8 safe from White attacks?
+                        if (!isSquareAttacked(60, true, board) && 
+                            !isSquareAttacked(59, true, board) && 
+                            !isSquareAttacked(58, true, board)) {
+                            
+                            Move castleMove = new Move(60, 58);
+                            castleMove.isCastle = true;
+                            moves.add(castleMove);
+                        }
+                    }
+                }
+            }
         }
         return moves;
     }
-
     public List<Move> generateWhiteRookMoves(Board board) {
         List<Move> moves = new ArrayList<>();
         long rooks = board.whiteRooks; // Make sure to add this to your Board class!
