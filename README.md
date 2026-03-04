@@ -41,6 +41,23 @@ The engine currently supports pseudo-legal move generation for all piece types:
 ### 5. Debugging Utilities
 * **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
 
+## Test Outputs
+
+### 1. Knights:
+<img width="733" height="845" alt="Screenshot 2026-03-04 172742" src="https://github.com/user-attachments/assets/124c9622-db8f-420d-a362-96481980fa5d" />
+
+### 2. Sliding Pieces (Bishops, Rooks, Queens):
+<img width="618" height="869" alt="Screenshot 2026-03-04 172759" src="https://github.com/user-attachments/assets/ab344b77-9c10-4024-aff5-7b25f0e00ae6" />
+
+### 3. Captures (with a demo of undoMove() as well):
+<img width="537" height="548" alt="Screenshot 2026-03-04 172826" src="https://github.com/user-attachments/assets/24b2a8c7-9aa2-404d-a256-4c7f7372d298" />
+<img width="681" height="548" alt="Screenshot 2026-03-04 172847" src="https://github.com/user-attachments/assets/09765381-4cad-407b-bae3-819b391b52eb" />
+<img width="659" height="550" alt="Screenshot 2026-03-04 172858" src="https://github.com/user-attachments/assets/296c151c-3dfa-480a-8bdc-6f6ad90801f5" />
+
+### 4. Castling:
+<img width="695" height="788" alt="Screenshot 2026-03-04 172934" src="https://github.com/user-attachments/assets/69132b18-284c-4026-a7c6-c0205dff1fdb" />
+<img width="707" height="869" alt="Screenshot 2026-03-04 172955" src="https://github.com/user-attachments/assets/298d0135-3fd8-45fc-9547-37d7ab937057" />
+
 ## Next Steps
 * [x] Implement pre-calculated attack tables for the King.
 * [x] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards.
