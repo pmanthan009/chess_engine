@@ -26,22 +26,26 @@ The engine currently supports pseudo-legal move generation for all piece types:
 * **Rooks, Bishops, & Queens (Sliding Pieces):**
     * Implemented **Magic Bitboards** for $O(1)$ sliding piece move generation, completely eliminating in-game `while` loops.
     * Generates blocker masks that strategically exclude outer edges to compress the hash tables (e.g., 4096 combinations for Rooks, 512 for Bishops).
-    * Utilizes perfect hashing functions to map current board blocker occupancies to pre-calculated ray-casted attack tables.
+    * **Dynamic Magic Generator:** Bypasses fragile hardcoded arrays by implementing a brute-force algorithm that discovers perfect, collision-free 64-bit Magic Numbers dynamically during engine startup (mirroring the architecture of modern engines like Stockfish).
     * Queens efficiently reuse and combine (bitwise OR) the Rook and Bishop lookup tables.
 
 ### 3. Move Extraction & Bit-Twiddling
 * Implemented a highly optimized move extraction loop using `Long.numberOfTrailingZeros()` to identify target squares.
 * Utilizes the `targetBitboard &= (targetBitboard - 1)` trick to instantly clear the least significant bit, avoiding unnecessary loop iterations.
 
-### 4. Board State Management
+### 4. Board State Management & Spatial Awareness
 * Implemented `makeMove()` and `undoMove()` functions to physically transition the board between states using extremely fast bitwise XOR (`^`) operations.
 * Engineered a memory-aware `Move` object that records captured piece IDs, allowing the engine to perfectly reconstruct and resurrect captured pieces during state reversions.
-* Established the foundational state-space traversal mechanics required for deep search tree algorithms without causing board state corruption.
+* **Reverse Attack Detection:** Implemented an $O(1)$ `isSquareAttacked()` function utilizing the pre-calculated attack tables to give the engine spatial awareness for Castling and Check detection.
 
 ### 5. Debugging Utilities
 * **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
 
 ## Next Steps
-* [ ] Add special moves i.e Castling, En Passant & Pawn-promotions.
-* [ ] Develop a static board evaluation function (e.g., piece values, piece-square tables).
-* [ ] Implement the Minimax algorithm with Alpha-Beta Pruning for the core search tree.
+* [x] Implement pre-calculated attack tables for the King.
+* [x] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards.
+* [x] Build the `makeMove()` and `undoMove()` functions to transition board states.
+* [x] Implement `isSquareAttacked()` for spatial awareness.
+* [ ] Implement Special Moves (Castling, En Passant, Pawn Promotions) and State History.
+* [ ] Develop a static board evaluation function.
+* [ ] Implement the Minimax algorithm with Alpha-Beta Pruning.
