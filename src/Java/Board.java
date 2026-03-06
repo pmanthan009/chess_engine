@@ -66,9 +66,18 @@ public class Board {
         long targetMask = 1L << move.targetSquare;
         long moveMask = startMask | targetMask;
 
-        // Reset En Passant for the next turn (we will override this later for double
-        // pawn pushes)
+        // Reset En Passant for the next turn
         this.enPassantTarget = -1;
+
+        // --- EN PASSANT TARGET SETUP ---
+        // If a piece moved exactly 16 squares (2 ranks), it might be a pawn double-push
+        if (Math.abs(move.targetSquare - move.startSquare) == 16) {
+            if (isWhite && ((whitePawns & startMask) != 0)) {
+                this.enPassantTarget = move.startSquare + 8; // The skipped square behind the White pawn
+            } else if (!isWhite && ((blackPawns & startMask) != 0)) {
+                this.enPassantTarget = move.startSquare - 8; // The skipped square behind the Black pawn
+            }
+        }
 
         if (isWhite) {
             // 1. Find which White piece is moving and toggle it (Remove from start, add to
@@ -101,6 +110,14 @@ public class Board {
                 } else if (move.targetSquare == 2) {
                     whiteRooks ^= (1L << 0) | (1L << 3); // Queenside: A1 to D1
                 }
+            }
+
+            // --- EN PASSANT CAPTURE DELETION ---
+            if (move.isEnPassant) {
+                // White captures UP, so the Black pawn is 8 squares BELOW the target
+                int capturedPawnSquare = move.targetSquare - 8; 
+                blackPawns &= ~(1L << capturedPawnSquare);
+                move.capturedPiece = 1; // Memorize that we killed a pawn!
             }
 
             // 2. Handle Captures: If Black has a piece on the target square, remove it
@@ -162,6 +179,14 @@ public class Board {
                 } else if (move.targetSquare == 58) {
                     blackRooks ^= (1L << 56) | (1L << 59); // Queenside: A8 to D8
                 }
+            }
+
+            // --- EN PASSANT CAPTURE DELETION ---
+            if (move.isEnPassant) {
+                // Black captures DOWN, so the White pawn is 8 squares ABOVE the target
+                int capturedPawnSquare = move.targetSquare + 8; 
+                whitePawns &= ~(1L << capturedPawnSquare);
+                move.capturedPiece = 1; // Memorize that we killed a pawn!
             }
 
             // 2. Handle Captures: If White has a piece on the target square, remove it
@@ -232,16 +257,20 @@ public class Board {
 
             // 2. Resurrect the captured Black piece (if any)
             if (move.capturedPiece != 0) {
-                if (move.capturedPiece == 1)
-                    blackPawns |= targetMask;
-                else if (move.capturedPiece == 2)
-                    blackKnights |= targetMask;
-                else if (move.capturedPiece == 3)
-                    blackBishops |= targetMask;
-                else if (move.capturedPiece == 4)
-                    blackRooks |= targetMask;
-                else if (move.capturedPiece == 5)
-                    blackQueens |= targetMask;
+                // If En Passant, resurrect on the square behind the target. Otherwise, use targetMask.
+                long resurrectMask = move.isEnPassant ? (1L << (move.targetSquare - 8)) : targetMask;
+                
+                if (move.capturedPiece == 1) {
+                    blackPawns |= resurrectMask;
+                } else if (move.capturedPiece == 2) {
+                    blackKnights |= resurrectMask;
+                } else if (move.capturedPiece == 3) {
+                    blackBishops |= resurrectMask;
+                } else if (move.capturedPiece == 4) {
+                    blackRooks |= resurrectMask;
+                } else if (move.capturedPiece == 5) {
+                    blackQueens |= resurrectMask;
+                }
             }
         } else {
             // 1. Move the Black piece back
@@ -269,16 +298,20 @@ public class Board {
             
             // 2. Resurrect the captured White piece (if any)
             if (move.capturedPiece != 0) {
-                if (move.capturedPiece == 1)
-                    whitePawns |= targetMask;
-                else if (move.capturedPiece == 2)
-                    whiteKnights |= targetMask;
-                else if (move.capturedPiece == 3)
-                    whiteBishops |= targetMask;
-                else if (move.capturedPiece == 4)
-                    whiteRooks |= targetMask;
-                else if (move.capturedPiece == 5)
-                    whiteQueens |= targetMask;
+                // Black EP captures mean the White pawn was ABOVE the target
+                long resurrectMask = move.isEnPassant ? (1L << (move.targetSquare + 8)) : targetMask;
+                
+                if (move.capturedPiece == 1) {
+                    whitePawns |= resurrectMask;
+                } else if (move.capturedPiece == 2) {
+                    whiteKnights |= resurrectMask;
+                } else if (move.capturedPiece == 3) {
+                    whiteBishops |= resurrectMask;
+                } else if (move.capturedPiece == 4) {
+                    whiteRooks |= resurrectMask;
+                } else if (move.capturedPiece == 5) {
+                    whiteQueens |= resurrectMask;
+                }
             }
         }
 

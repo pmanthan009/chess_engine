@@ -196,6 +196,27 @@ public class MoveGen {
         long capturesLeft = ((board.whitePawns & NOT_A_FILE) << 7) & board.blackPieces;
         extractMovesWithOffset(capturesLeft, -7, moves);
 
+        // --- EN PASSANT (WHITE) ---
+        if (board.enPassantTarget != -1) {
+            long epMask = 1L << board.enPassantTarget;
+            
+            // Can a White pawn attack this square to the Right?
+            long epCapturesRight = ((board.whitePawns & NOT_H_FILE) << 9) & epMask;
+            if (epCapturesRight != 0) {
+                Move epMove = new Move(board.enPassantTarget - 9, board.enPassantTarget);
+                epMove.isEnPassant = true;
+                moves.add(epMove);
+            }
+            
+            // Can a White pawn attack this square to the Left?
+            long epCapturesLeft = ((board.whitePawns & NOT_A_FILE) << 7) & epMask;
+            if (epCapturesLeft != 0) {
+                Move epMove = new Move(board.enPassantTarget - 7, board.enPassantTarget);
+                epMove.isEnPassant = true;
+                moves.add(epMove);
+            }
+        }
+
         return moves;
     }
 
@@ -215,6 +236,27 @@ public class MoveGen {
         long capturesHFile = ((board.blackPawns & NOT_H_FILE) >>> 7) & board.whitePieces;
         extractMovesWithOffset(capturesHFile, 7, moves);
 
+        // --- EN PASSANT (BLACK) ---
+        if (board.enPassantTarget != -1) {
+            long epMask = 1L << board.enPassantTarget;
+            
+            // Can a Black pawn attack this square to the A-File (Right from Black's perspective)?
+            long epCapturesAFile = ((board.blackPawns & NOT_A_FILE) >>> 9) & epMask;
+            if (epCapturesAFile != 0) {
+                Move epMove = new Move(board.enPassantTarget + 9, board.enPassantTarget);
+                epMove.isEnPassant = true;
+                moves.add(epMove);
+            }
+            
+            // Can a Black pawn attack this square to the H-File (Left from Black's perspective)?
+            long epCapturesHFile = ((board.blackPawns & NOT_H_FILE) >>> 7) & epMask;
+            if (epCapturesHFile != 0) {
+                Move epMove = new Move(board.enPassantTarget + 7, board.enPassantTarget);
+                epMove.isEnPassant = true;
+                moves.add(epMove);
+            }
+        }
+        
         return moves;
     }
 

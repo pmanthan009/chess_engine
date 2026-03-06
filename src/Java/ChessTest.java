@@ -239,6 +239,64 @@ public class ChessTest {
         System.out.println("\nResults:");
         System.out.println("Kingside Castle Available (Should be false!): " + foundKingside);
         System.out.println("Queenside Castle Available (Should be true): " + foundQueenside);
+
+        // --- TEST EN PASSANT ---
+        System.out.println("\n--- Testing En Passant ---");
+        
+        Board epTestBoard = new Board();
+        // Clear all pieces
+        epTestBoard.whitePawns = 0L; epTestBoard.whiteKnights = 0L; epTestBoard.whiteBishops = 0L; epTestBoard.whiteRooks = 0L; epTestBoard.whiteQueens = 0L; epTestBoard.whiteKing = 0L;
+        epTestBoard.blackPawns = 0L; epTestBoard.blackKnights = 0L; epTestBoard.blackBishops = 0L; epTestBoard.blackRooks = 0L; epTestBoard.blackQueens = 0L; epTestBoard.blackKing = 0L;
+        
+        // 1. Setup: White Pawn on D5 (35), Black Pawn on E7 (52)
+        epTestBoard.whitePawns = 1L << 35;
+        epTestBoard.blackPawns = 1L << 52;
+        epTestBoard.updateOccupancies();
+        
+        System.out.println("1. Initial State:");
+        System.out.println("White Pawns (D5):");
+        printBitboard(epTestBoard.whitePawns);
+        System.out.println("Black Pawns (E7):");
+        printBitboard(epTestBoard.blackPawns);
+
+        // 2. Black plays E7 to E5 (Double Push)
+        Move blackDoublePush = new Move(52, 36);
+        epTestBoard.makeMove(blackDoublePush, false); // false = Black's turn
+        
+        System.out.println("\n2. After Black's Double Push (E7 to E5):");
+        System.out.println("En Passant Target Square (Should be 44 for E6): " + epTestBoard.enPassantTarget);
+        
+        // 3. Generate White Pawn Moves
+        List<Move> epMoves = generator.generateWhitePawnMoves(epTestBoard);
+        Move theEpMove = null;
+        for (Move m : epMoves) {
+            if (m.isEnPassant) {
+                theEpMove = m;
+                System.out.println("Found En Passant Move: " + m);
+            }
+        }
+
+        // 4. Execute En Passant Capture
+        if (theEpMove != null) {
+            System.out.println("\n3. Executing En Passant Capture...");
+            epTestBoard.makeMove(theEpMove, true); // true = White's turn
+            
+            System.out.println("White Pawns (Should be on E6):");
+            printBitboard(epTestBoard.whitePawns);
+            System.out.println("Black Pawns (Should be completely EMPTY!):");
+            printBitboard(epTestBoard.blackPawns);
+            
+            // 5. Undo En Passant Capture
+            System.out.println("\n4. Undoing En Passant Capture...");
+            epTestBoard.undoMove(theEpMove, true);
+            
+            System.out.println("White Pawns (Should be back on D5):");
+            printBitboard(epTestBoard.whitePawns);
+            System.out.println("Black Pawns (Should be resurrected on E5!):");
+            printBitboard(epTestBoard.blackPawns);
+        } else {
+            System.out.println("ERROR: En Passant move not generated!");
+        }
     }
 
     public static void printBitboard(long bitboard) {
