@@ -11,6 +11,33 @@ public class ChessTest {
         Board board = new Board();
         MoveGen generator = new MoveGen();
 
+        // --- TEST PAWN MOVES (SINGLE & DOUBLE PUSHES) ---
+        System.out.println("\n--- Testing Initial Pawn Moves ---");
+        
+        Board initialPawnBoard = new Board();
+        // Clear the board
+        initialPawnBoard.whitePawns = 0L; initialPawnBoard.whiteKnights = 0L; initialPawnBoard.whiteBishops = 0L; initialPawnBoard.whiteRooks = 0L; initialPawnBoard.whiteQueens = 0L; initialPawnBoard.whiteKing = 0L;
+        initialPawnBoard.blackPawns = 0L; initialPawnBoard.blackKnights = 0L; initialPawnBoard.blackBishops = 0L; initialPawnBoard.blackRooks = 0L; initialPawnBoard.blackQueens = 0L; initialPawnBoard.blackKing = 0L;
+        
+        // Setup: White Pawn on E2 (12), Black Pawn on D7 (51)
+        initialPawnBoard.whitePawns = 1L << 12;
+        initialPawnBoard.blackPawns = 1L << 51;
+        initialPawnBoard.updateOccupancies();
+
+        // Test White
+        List<Move> whiteInitialMoves = generator.generateWhitePawnMoves(initialPawnBoard);
+        System.out.println("White Pawn on E2 Moves:");
+        for (Move m : whiteInitialMoves) {
+            System.out.println(m); // Expected: 12 to 20 (E3), 12 to 28 (E4)
+        }
+
+        // Test Black
+        List<Move> blackInitialMoves = generator.generateBlackPawnMoves(initialPawnBoard);
+        System.out.println("\nBlack Pawn on D7 Moves:");
+        for (Move m : blackInitialMoves) {
+            System.out.println(m); // Expected: 51 to 43 (D6), 51 to 35 (D5)
+        }
+
         // --- TEST WHITE KNIGHTS ---
         System.out.println("\n--- Initial White Knights Bitboard ---");
         printBitboard(board.whiteKnights);
@@ -296,6 +323,49 @@ public class ChessTest {
             printBitboard(epTestBoard.blackPawns);
         } else {
             System.out.println("ERROR: En Passant move not generated!");
+        }
+
+        // --- TEST PAWN PROMOTIONS ---
+        System.out.println("\n--- Testing Pawn Promotions ---");
+        
+        Board promoBoard = new Board();
+        // Clear the board
+        promoBoard.whitePawns = 0L; promoBoard.whiteKnights = 0L; promoBoard.whiteBishops = 0L; promoBoard.whiteRooks = 0L; promoBoard.whiteQueens = 0L; promoBoard.whiteKing = 0L;
+        promoBoard.blackPawns = 0L; promoBoard.blackKnights = 0L; promoBoard.blackBishops = 0L; promoBoard.blackRooks = 0L; promoBoard.blackQueens = 0L; promoBoard.blackKing = 0L;
+        
+        // Setup: White Pawn on A7 (48), Black Pawn on H2 (15)
+        promoBoard.whitePawns = 1L << 48;
+        promoBoard.blackPawns = 1L << 15;
+        promoBoard.updateOccupancies();
+
+        List<Move> whitePromoMoves = generator.generateWhitePawnMoves(promoBoard);
+        System.out.println("White Pawn on A7 Moves Found: " + whitePromoMoves.size() + " (Expected: 4)");
+        
+        Move whiteQueenPromo = null;
+        for (Move m : whitePromoMoves) {
+            System.out.println(m);
+            if (m.promotedPiece == 5) whiteQueenPromo = m; // Grab the Queen promotion
+        }
+
+        // Execute and Undo the White Queen Promotion
+        if (whiteQueenPromo != null) {
+            System.out.println("\nExecuting White Queen Promotion (A7 to A8)...");
+            promoBoard.makeMove(whiteQueenPromo, true); // true = White's turn
+            
+            System.out.println("White Pawns Bitboard (Should be EMPTY):");
+            printBitboard(promoBoard.whitePawns);
+            System.out.println("White Queens Bitboard (Should have a 1 on A8):");
+            printBitboard(promoBoard.whiteQueens);
+            
+            System.out.println("\nUndoing White Queen Promotion...");
+            promoBoard.undoMove(whiteQueenPromo, true);
+            
+            System.out.println("White Pawns Bitboard (Should be back on A7):");
+            printBitboard(promoBoard.whitePawns);
+            System.out.println("White Queens Bitboard (Should be EMPTY again):");
+            printBitboard(promoBoard.whiteQueens);
+        } else {
+            System.out.println("ERROR: Queen promotion move not generated!");
         }
     }
 

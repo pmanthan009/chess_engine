@@ -120,6 +120,17 @@ public class Board {
                 move.capturedPiece = 1; // Memorize that we killed a pawn!
             }
 
+            // --- PAWN PROMOTION (WHITE) ---
+            if (move.promotedPiece != 0) {
+                whitePawns ^= targetMask; // Delete the pawn from the target square
+                
+                // Spawn the new piece
+                if (move.promotedPiece == 2) whiteKnights ^= targetMask;
+                else if (move.promotedPiece == 3) whiteBishops ^= targetMask;
+                else if (move.promotedPiece == 4) whiteRooks ^= targetMask;
+                else if (move.promotedPiece == 5) whiteQueens ^= targetMask;
+            }
+
             // 2. Handle Captures: If Black has a piece on the target square, remove it
             if ((blackPieces & targetMask) != 0) {
                 long captureMask = ~targetMask;
@@ -189,6 +200,16 @@ public class Board {
                 move.capturedPiece = 1; // Memorize that we killed a pawn!
             }
 
+            // --- PAWN PROMOTION (BLACK) ---
+            if (move.promotedPiece != 0) {
+                blackPawns ^= targetMask; // Delete the pawn from the target square
+                
+                if (move.promotedPiece == 2) blackKnights ^= targetMask;
+                else if (move.promotedPiece == 3) blackBishops ^= targetMask;
+                else if (move.promotedPiece == 4) blackRooks ^= targetMask;
+                else if (move.promotedPiece == 5) blackQueens ^= targetMask;
+            }
+
             // 2. Handle Captures: If White has a piece on the target square, remove it
             if ((whitePieces & targetMask) != 0) {
                 long captureMask = ~targetMask;
@@ -232,6 +253,17 @@ public class Board {
         long moveMask = startMask | targetMask;
 
         if (isWhite) {
+            // --- REVERSE PAWN PROMOTION (WHITE) ---
+            if (move.promotedPiece != 0) {
+                // Delete the promoted piece
+                if (move.promotedPiece == 2) whiteKnights ^= targetMask;
+                else if (move.promotedPiece == 3) whiteBishops ^= targetMask;
+                else if (move.promotedPiece == 4) whiteRooks ^= targetMask;
+                else if (move.promotedPiece == 5) whiteQueens ^= targetMask;
+                
+                whitePawns ^= targetMask; // Respawn the pawn on the target square so the logic below catches it!
+            }
+            
             // 1. Move the White piece back
             if ((whitePawns & targetMask) != 0) {
                 whitePawns ^= moveMask;
@@ -273,6 +305,16 @@ public class Board {
                 }
             }
         } else {
+            // --- REVERSE PAWN PROMOTION (BLACK) ---
+            if (move.promotedPiece != 0) {
+                if (move.promotedPiece == 2) blackKnights ^= targetMask;
+                else if (move.promotedPiece == 3) blackBishops ^= targetMask;
+                else if (move.promotedPiece == 4) blackRooks ^= targetMask;
+                else if (move.promotedPiece == 5) blackQueens ^= targetMask;
+                
+                blackPawns ^= targetMask; 
+            }
+
             // 1. Move the Black piece back
             if ((blackPawns & targetMask) != 0) {
                 blackPawns ^= moveMask;

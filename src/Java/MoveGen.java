@@ -185,16 +185,16 @@ public class MoveGen {
         long emptySquares = ~board.allPieces;
 
         long singlePushes = (board.whitePawns << 8) & emptySquares;
-        extractMovesWithOffset(singlePushes, -8, moves); 
+        extractPawnMoves(singlePushes, -8, moves); // CHANGED
 
         long doublePushes = (singlePushes << 8) & emptySquares & RANK_4;
-        extractMovesWithOffset(doublePushes, -16, moves); 
+        extractPawnMoves(doublePushes, -16, moves); // CHANGED
 
         long capturesRight = ((board.whitePawns & NOT_H_FILE) << 9) & board.blackPieces;
-        extractMovesWithOffset(capturesRight, -9, moves);
+        extractPawnMoves(capturesRight, -9, moves); // CHANGED
 
         long capturesLeft = ((board.whitePawns & NOT_A_FILE) << 7) & board.blackPieces;
-        extractMovesWithOffset(capturesLeft, -7, moves);
+        extractPawnMoves(capturesLeft, -7, moves); // CHANGED
 
         // --- EN PASSANT (WHITE) ---
         if (board.enPassantTarget != -1) {
@@ -225,16 +225,16 @@ public class MoveGen {
         long emptySquares = ~board.allPieces;
 
         long singlePushes = (board.blackPawns >>> 8) & emptySquares;
-        extractMovesWithOffset(singlePushes, 8, moves);
+        extractPawnMoves(singlePushes, 8, moves); // CHANGED
 
         long doublePushes = (singlePushes >>> 8) & emptySquares & RANK_5;
-        extractMovesWithOffset(doublePushes, 16, moves);
+        extractPawnMoves(doublePushes, 16, moves); // CHANGED
 
         long capturesAFile = ((board.blackPawns & NOT_A_FILE) >>> 9) & board.whitePieces;
-        extractMovesWithOffset(capturesAFile, 9, moves);
+        extractPawnMoves(capturesAFile, 9, moves); // CHANGED
 
         long capturesHFile = ((board.blackPawns & NOT_H_FILE) >>> 7) & board.whitePieces;
-        extractMovesWithOffset(capturesHFile, 7, moves);
+        extractPawnMoves(capturesHFile, 7, moves); // CHANGED
 
         // --- EN PASSANT (BLACK) ---
         if (board.enPassantTarget != -1) {
@@ -697,23 +697,38 @@ public class MoveGen {
     // --- HELPER METHODS ---
 
     /**
+     * Extracts pawn moves from a bitboard and automatically handles promotions.
+     */
+    private void extractPawnMoves(long targetBitboard, int offset, List<Move> moves) {
+        while (targetBitboard != 0) {
+            int targetSquare = Long.numberOfTrailingZeros(targetBitboard);
+            int startSquare = targetSquare + offset;
+            
+            // If the target square is on Rank 8 (56-63) or Rank 1 (0-7), it's a promotion!
+            if (targetSquare >= 56 || targetSquare <= 7) {
+                // Generate 4 separate promotion moves for this single pawn
+                for (int piece = 2; piece <= 5; piece++) { // 2=Knight, 3=Bishop, 4=Rook, 5=Queen
+                    Move promoMove = new Move(startSquare, targetSquare);
+                    promoMove.promotedPiece = piece;
+                    moves.add(promoMove);
+                }
+            } else {
+                // Standard pawn move
+                moves.add(new Move(startSquare, targetSquare));
+            }
+            
+            // Clear the least significant bit
+            targetBitboard &= (targetBitboard - 1); 
+        }
+    }
+
+    /**
      * For pieces like Knights where we already know the exact start square.
      */
     private void extractMoves(long targetBitboard, int startSquare, List<Move> moves) {
         while (targetBitboard != 0) {
             int targetSquare = Long.numberOfTrailingZeros(targetBitboard);
             moves.add(new Move(startSquare, targetSquare));
-            targetBitboard &= (targetBitboard - 1);
-        }
-    }
-
-    /**
-     * For pieces like Pawns where we calculate the start square using a mathematical offset.
-     */
-    private void extractMovesWithOffset(long targetBitboard, int offset, List<Move> moves) {
-        while (targetBitboard != 0) {
-            int targetSquare = Long.numberOfTrailingZeros(targetBitboard);
-            moves.add(new Move(targetSquare + offset, targetSquare));
             targetBitboard &= (targetBitboard - 1);
         }
     }
