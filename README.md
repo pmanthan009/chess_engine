@@ -61,6 +61,10 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 <img width="695" height="788" alt="Screenshot 2026-03-04 172934" src="https://github.com/user-attachments/assets/69132b18-284c-4026-a7c6-c0205dff1fdb" />
 <img width="707" height="869" alt="Screenshot 2026-03-04 172955" src="https://github.com/user-attachments/assets/298d0135-3fd8-45fc-9547-37d7ab937057" />
 
+### 5. Pawn Promotions:
+<img width="669" height="694" alt="Screenshot 2026-03-06 235203" src="https://github.com/user-attachments/assets/2cba195b-04a8-4ba7-aa81-1b0f32b26988" />
+<img width="632" height="531" alt="Screenshot 2026-03-06 235214" src="https://github.com/user-attachments/assets/114cf213-e894-499b-9626-a75aa2ce3f80" />
+
 ## Next Steps
 * [x] Implement pre-calculated attack tables for the King.
 * [x] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards.
