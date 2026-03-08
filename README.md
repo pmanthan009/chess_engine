@@ -41,7 +41,13 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * Engineered a memory-aware `Move` object that acts as a historical snapshot. It records captured piece IDs, castling rights, and En Passant targets, allowing the engine to perfectly reconstruct previous game states during deep search tree reversions.
 * **Reverse Attack Detection:** Implemented an O(1) `isSquareAttacked()` function utilizing the pre-calculated attack tables to give the engine spatial awareness for Castling path validation and Check detection.
 
-### 5. Debugging Utilities
+### 5. Static Evaluation (The AI's "Taste")
+* **Hardware-Accelerated Material Counting:** Utilizes Java's `Long.bitCount()` (which maps to the CPU's native `popcnt` instruction) to count pieces across 64 squares in a single CPU cycle.
+* **Centipawn Scoring:** Evaluates board states using standard centipawn metrics (Pawn = 100, Knight/Bishop = 300, Rook = 500, Queen = 900) to allow for granular positional bonuses.
+* **Piece-Square Tables (PSTs):** Implemented an array of positional bonuses to grant the engine strategic intuition (e.g., centralizing knights, tucking the King away, pushing pawns).
+* **Bitwise Mirroring:** Reuses White's Piece-Square Tables for Black by dynamically flipping the target square indices using a vertical mirror XOR calculation (`square ^ 56`).
+
+### 6. Debugging Utilities
 * **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
 
 ## Test Outputs
@@ -71,5 +77,5 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * [x] Build the `makeMove()` and `undoMove()` functions to transition board states.
 * [x] Implement `isSquareAttacked()` for spatial awareness.
 * [x] Implement Special Moves (Castling, En Passant, Pawn Promotions) and State History.
-* [ ] Develop a static board evaluation function.
+* [x] Develop a static board evaluation function.
 * [ ] Implement the Minimax algorithm with Alpha-Beta Pruning.
