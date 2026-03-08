@@ -367,6 +367,63 @@ public class ChessTest {
         } else {
             System.out.println("ERROR: Queen promotion move not generated!");
         }
+
+        // --- TEST STATIC EVALUATION ---
+        System.out.println("\n--- Testing Static Evaluation ---");
+        
+        Board evalBoard = new Board();
+        Evaluator evaluator = new Evaluator();
+        
+        // Start position (Should be exactly 0)
+        System.out.println("Starting Position Score: " + evaluator.evaluate(evalBoard));
+        
+        // Let's give White an extra Queen, and Black an extra Rook
+        evalBoard.whiteQueens |= (1L << 27); // Add Queen (+900)
+        evalBoard.blackRooks |= (1L << 35);  // Add Rook (-500)
+        
+        // The net score should be +400 (White is winning by 4 pawns)
+        System.out.println("Modified Board Score (Expected +400): " + evaluator.evaluate(evalBoard));
+
+        // --- TEST POSITIONAL EVALUATION (PIECE-SQUARE TABLES) ---
+        System.out.println("\n--- Testing Positional Evaluation ---");
+        
+        Evaluator posEvaluator = new Evaluator();
+
+        // 1. White Knight: Rim vs Center
+        Board badWhiteBoard = new Board();
+        Board goodWhiteBoard = new Board();
+        
+        // Clear both boards
+        badWhiteBoard.whitePawns = 0L; badWhiteBoard.whiteKnights = 0L; badWhiteBoard.whiteBishops = 0L; badWhiteBoard.whiteRooks = 0L; badWhiteBoard.whiteQueens = 0L; badWhiteBoard.whiteKing = 0L;
+        badWhiteBoard.blackPawns = 0L; badWhiteBoard.blackKnights = 0L; badWhiteBoard.blackBishops = 0L; badWhiteBoard.blackRooks = 0L; badWhiteBoard.blackQueens = 0L; badWhiteBoard.blackKing = 0L;
+        
+        goodWhiteBoard.whitePawns = 0L; goodWhiteBoard.whiteKnights = 0L; goodWhiteBoard.whiteBishops = 0L; goodWhiteBoard.whiteRooks = 0L; goodWhiteBoard.whiteQueens = 0L; goodWhiteBoard.whiteKing = 0L;
+        goodWhiteBoard.blackPawns = 0L; goodWhiteBoard.blackKnights = 0L; goodWhiteBoard.blackBishops = 0L; goodWhiteBoard.blackRooks = 0L; goodWhiteBoard.blackQueens = 0L; goodWhiteBoard.blackKing = 0L;
+
+        // Place White Knight on A1 (Index 0 - Corner)
+        badWhiteBoard.whiteKnights = 1L << 0; 
+        
+        // Place White Knight on D4 (Index 27 - Center)
+        goodWhiteBoard.whiteKnights = 1L << 27; 
+        
+        int badWhiteScore = posEvaluator.evaluate(badWhiteBoard);
+        int goodWhiteScore = posEvaluator.evaluate(goodWhiteBoard);
+        
+        System.out.println("White Knight on A1 Score: " + badWhiteScore + " (Expected: 300 - 50 = 250)");
+        System.out.println("White Knight on D4 Score: " + goodWhiteScore + " (Expected: 300 + 20 = 320)");
+        System.out.println("Does White prefer the center? " + (goodWhiteScore > badWhiteScore));
+
+        // 2. Black Knight Mirror Test
+        Board blackBoard = new Board();
+        blackBoard.whitePawns = 0L; blackBoard.whiteKnights = 0L; blackBoard.whiteBishops = 0L; blackBoard.whiteRooks = 0L; blackBoard.whiteQueens = 0L; blackBoard.whiteKing = 0L;
+        blackBoard.blackPawns = 0L; blackBoard.blackKnights = 0L; blackBoard.blackBishops = 0L; blackBoard.blackRooks = 0L; blackBoard.blackQueens = 0L; blackBoard.blackKing = 0L;
+
+        // Place Black Knight on D5 (Index 35 - Center for Black)
+        // Flipped Index calculation: 35 ^ 56 = 27. It should read the exact same +20 bonus!
+        blackBoard.blackKnights = 1L << 35;
+        
+        int blackScore = posEvaluator.evaluate(blackBoard);
+        System.out.println("\nBlack Knight on D5 Score: " + blackScore + " (Expected: -(300 + 20) = -320)");
     }
 
     public static void printBitboard(long bitboard) {
