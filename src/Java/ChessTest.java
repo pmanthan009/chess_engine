@@ -424,6 +424,38 @@ public class ChessTest {
         
         int blackScore = posEvaluator.evaluate(blackBoard);
         System.out.println("\nBlack Knight on D5 Score: " + blackScore + " (Expected: -(300 + 20) = -320)");
+
+        // --- TEST MINIMAX AI: MATE IN 1 ---
+        System.out.println("\n--- Testing AI: Find the Mate in 1 ---");
+        
+        Board mateBoard = new Board();
+        // Clear everything
+        mateBoard.whitePawns = 0L; mateBoard.whiteKnights = 0L; mateBoard.whiteBishops = 0L; mateBoard.whiteRooks = 0L; mateBoard.whiteQueens = 0L; mateBoard.whiteKing = 0L;
+        mateBoard.blackPawns = 0L; mateBoard.blackKnights = 0L; mateBoard.blackBishops = 0L; mateBoard.blackRooks = 0L; mateBoard.blackQueens = 0L; mateBoard.blackKing = 0L;
+
+        // Setup Back Rank Mate scenario
+        // Black King on G8 (62), blocked by pawns on F7 (53), G7 (54), H7 (55)
+        mateBoard.blackKing = 1L << 62;
+        mateBoard.blackPawns = (1L << 53) | (1L << 54) | (1L << 55);
+
+        // White Rook on E1 (4), White King safely tucked on A1 (0)
+        mateBoard.whiteRooks = 1L << 4;
+        mateBoard.whiteKing = 1L << 7;
+        
+        mateBoard.updateOccupancies();
+        
+        System.out.println("Board setup complete. Black King is trapped on G8.");
+
+        Search ai = new Search();
+        
+        // We search at Depth 2 so the engine can see Black's lack of legal responses!
+        long startTime = System.currentTimeMillis();
+        Move bestMove = ai.getBestMove(mateBoard, 2, true); // true = White to move
+        long endTime = System.currentTimeMillis();
+
+        System.out.println("\nSearch took " + (endTime - startTime) + "ms");
+        System.out.println("AI Chose: " + bestMove);
+        System.out.println("(Expected: Move from 4 to 60)"); // E1 to E8
     }
 
     public static void printBitboard(long bitboard) {

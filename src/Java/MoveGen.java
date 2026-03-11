@@ -547,6 +547,68 @@ public class MoveGen {
         }
         return moves;
     }
+
+    /**
+     * Gathers every single pseudo-legal move for White into one master list.
+     */
+    public List<Move> generateAllWhiteMoves(Board board) {
+        List<Move> allMoves = new ArrayList<>();
+        allMoves.addAll(generateWhitePawnMoves(board));
+        // Note: Make sure the names below match the actual methods you wrote earlier!
+        allMoves.addAll(generateWhiteKnightMoves(board));
+        allMoves.addAll(generateWhiteBishopMoves(board));
+        allMoves.addAll(generateWhiteRookMoves(board));
+        allMoves.addAll(generateWhiteQueenMoves(board));
+        allMoves.addAll(generateWhiteKingMoves(board));
+        return allMoves;
+    }
+
+    /**
+     * Gathers every single pseudo-legal move for Black into one master list.
+     */
+    public List<Move> generateAllBlackMoves(Board board) {
+        List<Move> allMoves = new ArrayList<>();
+        allMoves.addAll(generateBlackPawnMoves(board));
+        allMoves.addAll(generateBlackKnightMoves(board));
+        allMoves.addAll(generateBlackBishopMoves(board));
+        allMoves.addAll(generateBlackRookMoves(board));
+        allMoves.addAll(generateBlackQueenMoves(board));
+        allMoves.addAll(generateBlackKingMoves(board));
+        return allMoves;
+    }
+
+    /**
+     * Generates only STRICTLY LEGAL moves by simulating each pseudo-legal move
+     * and ensuring it doesn't leave the King in check.
+     */
+    public List<Move> getLegalMoves(Board board, boolean isWhite) {
+        List<Move> pseudoLegalMoves = isWhite ? generateAllWhiteMoves(board) : generateAllBlackMoves(board);
+        List<Move> strictlyLegalMoves = new ArrayList<>();
+
+        for (Move move : pseudoLegalMoves) {
+            // 1. Play the move
+            board.makeMove(move, isWhite);
+
+            // 2. Find our King
+            long kingBoard = isWhite ? board.whiteKing : board.blackKing;
+            
+            // Note: If the king was captured in a pseudo-legal timeline, kingBoard is 0.
+            if (kingBoard != 0) {
+                int kingSquare = Long.numberOfTrailingZeros(kingBoard);
+                
+                // 3. Is the King safe? If yes, the move is legal!
+                if (!isSquareAttacked(kingSquare, !isWhite, board)) {
+                    strictlyLegalMoves.add(move);
+                }
+            }
+
+            // 4. Undo the move
+            board.undoMove(move, isWhite);
+        }
+
+        return strictlyLegalMoves;
+    }
+    
     // --- MAGIC BITBOARD MASK GENERATION ---
 
     /**
