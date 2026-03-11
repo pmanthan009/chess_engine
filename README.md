@@ -47,8 +47,9 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * **Piece-Square Tables (PSTs):** Implemented an array of positional bonuses to grant the engine strategic intuition (e.g., centralizing knights, tucking the King away, pushing pawns).
 * **Bitwise Mirroring:** Reuses White's Piece-Square Tables for Black by dynamically flipping the target square indices using a vertical mirror XOR calculation (`square ^ 56`).
 
-### 6. Minimax Search Algorithm (The AI Brain)
-* **Recursive Search Tree:** Implemented a pure Minimax algorithm to traverse future game states by recursively simulating and unmaking moves via the bitboard engine.
+### 6. Minimax Search Algorithm & Alpha-Beta Pruning (The AI Brain)
+* **Recursive Search Tree:** Implemented a Minimax algorithm to traverse future game states by recursively simulating and unmaking moves via the bitboard engine.
+* **Alpha-Beta Pruning:** Drastically optimized the search tree by implementing $\alpha$ and $\beta$ cutoffs. This mathematically reduces the time complexity from $O(b^d)$ to $O(b^{d/2})$, allowing the engine to sever useless branches and search twice as deep in the same amount of time.
 * **Strictly Legal Filter:** Engineered an on-the-fly move filter that physically tests pseudo-legal moves against the `isSquareAttacked` function to eliminate timelines where the King is left in check.
 * **Checkmate & Stalemate Detection:** The engine detects end-game states by evaluating empty legal move lists and returns depth-modified astronomical scores (+/- 99999) to force the fastest possible checkmate.
 * **UCI-Style Output Formatting:** Translates raw centipawn evaluations into standard engine readouts (e.g., `+1.20`) and converts forced mate scores into clean `+M2` formatting.

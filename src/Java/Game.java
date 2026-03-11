@@ -8,14 +8,16 @@ public class Game {
     private MoveGen generator;
 
     public Game() {
-        this.board = new Board(); 
+        this.board = new Board();
         this.ai = new Search();
         this.generator = new MoveGen();
     }
 
     /**
-     * Play a game against your engine! 
-     * @param aiDepth How many moves ahead the AI should look (3 or 4 is recommended)
+     * Play a game against your engine!
+     * 
+     * @param aiDepth      How many moves ahead the AI should look (3 or 4 is
+     *                     recommended)
      * @param humanIsWhite True if you want to play as White
      */
     public void playHumanVsAI(int aiDepth, boolean humanIsWhite) {
@@ -25,11 +27,13 @@ public class Game {
 
         System.out.println("--- STARTING HUMAN VS AI (AI Depth " + aiDepth + ") ---");
         System.out.println("Type your moves in standard format: 'e2e4', 'g1f3', etc.");
-        if (humanIsWhite) System.out.println("You are playing White.");
-        else System.out.println("You are playing Black.");
+        if (humanIsWhite)
+            System.out.println("You are playing White.");
+        else
+            System.out.println("You are playing Black.");
 
         while (true) {
-            System.out.println("\nMove " + moveNumber + " - " + (isWhiteTurn ? "White" : "Black") + " to play:");
+            System.out.println("\nMove " + moveNumber + "(Depth:" + aiDepth + ")" + " - " + (isWhiteTurn ? "White" : "Black") + " to play:");
             printBoard(board);
 
             // 1. Generate Legal Moves & Check for Game Over
@@ -37,7 +41,7 @@ public class Game {
             if (legalMoves.isEmpty()) {
                 long kingBoard = isWhiteTurn ? board.whiteKing : board.blackKing;
                 int kingSquare = Long.numberOfTrailingZeros(kingBoard);
-                
+
                 if (generator.isSquareAttacked(kingSquare, !isWhiteTurn, board)) {
                     System.out.println("\nCHECKMATE! " + (isWhiteTurn ? "Black" : "White") + " wins!");
                 } else {
@@ -66,9 +70,12 @@ public class Game {
                                     int requestedPiece = 5; // Queen default
                                     if (input.length() == 5) {
                                         char p = input.charAt(4);
-                                        if (p == 'r') requestedPiece = 4;
-                                        else if (p == 'b') requestedPiece = 3;
-                                        else if (p == 'n') requestedPiece = 2;
+                                        if (p == 'r')
+                                            requestedPiece = 4;
+                                        else if (p == 'b')
+                                            requestedPiece = 3;
+                                        else if (p == 'n')
+                                            requestedPiece = 2;
                                     }
                                     if (m.promotedPiece == requestedPiece) {
                                         chosenMove = m;
@@ -86,7 +93,7 @@ public class Game {
                         System.out.println("Invalid or illegal move! Please try again.");
                     }
                 }
-                
+
                 board.makeMove(chosenMove, isWhiteTurn);
 
             } else {
@@ -101,14 +108,16 @@ public class Game {
                     break;
                 }
 
-                System.out.println("AI chose: " + squareToString(bestMove.startSquare) + squareToString(bestMove.targetSquare) + 
-                                   " (Took " + (endTime - startTime) + "ms)");
+                System.out.println(
+                        "AI chose: " + squareToString(bestMove.startSquare) + squareToString(bestMove.targetSquare) +
+                                " (Took " + (endTime - startTime) + "ms)");
                 board.makeMove(bestMove, isWhiteTurn);
             }
 
             // Flip turns
             isWhiteTurn = !isWhiteTurn;
-            if (isWhiteTurn) moveNumber++; 
+            if (isWhiteTurn)
+                moveNumber++;
         }
         scanner.close();
     }
@@ -140,20 +149,32 @@ public class Game {
             for (int file = 0; file < 8; file++) {
                 int square = rank * 8 + file;
                 long mask = 1L << square;
-                
+
                 char piece = '.';
-                if ((b.whitePawns & mask) != 0) piece = 'P';
-                else if ((b.whiteKnights & mask) != 0) piece = 'N';
-                else if ((b.whiteBishops & mask) != 0) piece = 'B';
-                else if ((b.whiteRooks & mask) != 0) piece = 'R';
-                else if ((b.whiteQueens & mask) != 0) piece = 'Q';
-                else if ((b.whiteKing & mask) != 0) piece = 'K';
-                else if ((b.blackPawns & mask) != 0) piece = 'p';
-                else if ((b.blackKnights & mask) != 0) piece = 'n';
-                else if ((b.blackBishops & mask) != 0) piece = 'b';
-                else if ((b.blackRooks & mask) != 0) piece = 'r';
-                else if ((b.blackQueens & mask) != 0) piece = 'q';
-                else if ((b.blackKing & mask) != 0) piece = 'k';
+                if ((b.whitePawns & mask) != 0)
+                    piece = 'P';
+                else if ((b.whiteKnights & mask) != 0)
+                    piece = 'N';
+                else if ((b.whiteBishops & mask) != 0)
+                    piece = 'B';
+                else if ((b.whiteRooks & mask) != 0)
+                    piece = 'R';
+                else if ((b.whiteQueens & mask) != 0)
+                    piece = 'Q';
+                else if ((b.whiteKing & mask) != 0)
+                    piece = 'K';
+                else if ((b.blackPawns & mask) != 0)
+                    piece = 'p';
+                else if ((b.blackKnights & mask) != 0)
+                    piece = 'n';
+                else if ((b.blackBishops & mask) != 0)
+                    piece = 'b';
+                else if ((b.blackRooks & mask) != 0)
+                    piece = 'r';
+                else if ((b.blackQueens & mask) != 0)
+                    piece = 'q';
+                else if ((b.blackKing & mask) != 0)
+                    piece = 'k';
 
                 System.out.print(piece + " ");
             }
@@ -166,6 +187,6 @@ public class Game {
     public static void main(String[] args) {
         Game game = new Game();
         // Play against the AI! Depth 4, and you are White (true).
-        game.playHumanVsAI(4, true); 
+        game.playHumanVsAI(4, true);
     }
 }
