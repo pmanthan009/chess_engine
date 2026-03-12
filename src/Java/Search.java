@@ -11,13 +11,14 @@ public class Search {
      */
     public Move getBestMove(Board board, int depth, boolean isWhite) {
         List<Move> legalMoves = generator.getLegalMoves(board, isWhite);
+        orderMoves(legalMoves);
 
         Move bestMove = null;
         // White wants positive infinity, Black wants negative infinity
         int bestScore = isWhite ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
         // Initial absolute worst-case scenarios
-        int alpha = -1000000; 
+        int alpha = -1000000;
         int beta = 1000000;
 
         for (Move move : legalMoves) {
@@ -48,22 +49,29 @@ public class Search {
 
         // --- FORMAT SCORE OUTPUT ---
         String displayScore;
-        
+
         // If the score is astronomical, it's a forced Checkmate!
         if (Math.abs(bestScore) > 90000) {
-            // Calculate roughly how many moves until mate based on the depth modifier
-            int mateDistance = (100000 - Math.abs(bestScore) + 1) / 2; 
-            
+            // 1. Find out how much depth was left when the mate was found
+            int depthFound = Math.abs(bestScore) - 99999;
+
+            // 2. Calculate the total plies (half-moves) it took to reach that mate
+            int pliesToMate = depth - depthFound + 1;
+
+            // 3. Convert half-moves to full moves (e.g., 3 plies = Mate in 2)
+            int mateDistance = (pliesToMate + 1) / 2;
+
             // If positive, White is delivering mate. If negative, Black is delivering mate.
-            displayScore = (bestScore > 0 ? "+M" : "-M") + Math.max(1, mateDistance);
+            displayScore = (bestScore > 0 ? "+M" : "-M") + mateDistance;
         } else {
             // Standard evaluation: Convert centipawns to decimal (e.g., 320 -> 3.20)
             displayScore = String.format("%.2f", bestScore / 100.0);
-            
-            // Add a plus sign for White's advantage to match standard conventions
-            if (bestScore > 0) displayScore = "+" + displayScore;
+
+            // Add a plus sign for White's advantage
+            if (bestScore > 0)
+                displayScore = "+" + displayScore;
         }
-        
+
         System.out.println("Evaluation: " + displayScore);
 
         return bestMove;
@@ -75,24 +83,25 @@ public class Search {
     private int minimax(Board board, int depth, int alpha, int beta, boolean isWhite) {
         // 1. Generate STRICTLY LEGAL moves
         List<Move> legalMoves = generator.getLegalMoves(board, isWhite);
+        orderMoves(legalMoves);
 
         // 2. CHECKMATE / STALEMATE DETECTION
         if (legalMoves.isEmpty()) {
             // Find the king
-                
+
             long kingBoard = isWhite ? board.whiteKing : board.blackKing;
             int kingSquare = Long.numberOfTrailingZeros(kingBoard);
-            
+
             // Are we in check?
             boolean inCheck = generator.isSquareAttacked(kingSquare, !isWhite, board);
-            
+
             if (inCheck) {
                 // Checkmate! Returning a massive score.
                 // We add/subtract 'depth' so the engine prefers faster checkmates!
-                return isWhite ? -99999 - depth : 99999 + depth; 
+                return isWhite ? -99999 - depth : 99999 + depth;
             } else {
                 // Stalemate! It's a draw.
-                return 0; 
+                return 0;
             }
         }
 
@@ -132,5 +141,39 @@ public class Search {
             }
             return minScore;
         }
+    }
+
+    /**
+     * Calculates a quick heuristic "guess" of a move's quality to prioritize it in
+     * the search tree.
+     * Higher score = evaluated first.
+     */
+    private int guessMoveScore(Move move) {
+        int scoreGuess = 0;
+
+        // 1. PROMOTIONS ARE KING
+        // promotedPiece IDs: 2=Knight, 3=Bishop, 4=Rook, 5=Queen
+        if (move.promotedPiece != 0) {
+            scoreGuess += move.promotedPiece * 100;
+        }
+
+        // 2. CAPTURES (Most Valuable Victim)
+        // capturedPiece IDs: 1=Pawn, 2=Knight, 3=Bishop, 4=Rook, 5=Queen
+        if (move.capturedPiece != 0) {
+            scoreGuess += move.capturedPiece * 10;
+        } else if (move.isEnPassant) {
+            scoreGuess += 10; // En passant captures a pawn (ID 1)
+        }
+
+        return scoreGuess;
+    }
+
+    /**
+     * Sorts the move list so the most promising moves (captures/promotions) are
+     * evaluated first,
+     * drastically increasing Alpha-Beta pruning cutoffs.
+     */
+    private void orderMoves(List<Move> moves) {
+        moves.sort((m1, m2) -> Integer.compare(guessMoveScore(m2), guessMoveScore(m1)));
     }
 }

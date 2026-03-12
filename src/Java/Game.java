@@ -25,7 +25,7 @@ public class Game {
         boolean isWhiteTurn = true;
         int moveNumber = 1;
 
-        System.out.println("--- STARTING HUMAN VS AI (AI Depth " + aiDepth + ") ---");
+        System.out.println("--- STARTING HUMAN VS ENGINE (Engine Depth " + aiDepth + ") ---");
         System.out.println("Type your moves in standard format: 'e2e4', 'g1f3', etc.");
         if (humanIsWhite)
             System.out.println("You are playing White.");
@@ -98,18 +98,18 @@ public class Game {
 
             } else {
                 // --- AI TURN ---
-                System.out.println("AI is thinking...");
+                System.out.println("Engine running...");
                 long startTime = System.currentTimeMillis();
                 Move bestMove = ai.getBestMove(board, aiDepth, isWhiteTurn);
                 long endTime = System.currentTimeMillis();
 
                 if (bestMove == null) {
-                    System.out.println("ERROR: AI returned null move.");
+                    System.out.println("ERROR: Engine returned null move.");
                     break;
                 }
 
                 System.out.println(
-                        "AI chose: " + squareToString(bestMove.startSquare) + squareToString(bestMove.targetSquare) +
+                        "Engine played: " + squareToString(bestMove.startSquare) + squareToString(bestMove.targetSquare) +
                                 " (Took " + (endTime - startTime) + "ms)");
                 board.makeMove(bestMove, isWhiteTurn);
             }
@@ -187,6 +187,6 @@ public class Game {
     public static void main(String[] args) {
         Game game = new Game();
         // Play against the AI! Depth 4, and you are White (true).
-        game.playHumanVsAI(4, true);
+        game.playHumanVsAI(6, true);
     }
 }
