@@ -3,7 +3,7 @@
 **Author:** Manthan Patel
 
 ## Overview
-A high-performance chess engine built from scratch in Java. This project bypasses traditional array-based board representations in favor of **Bitboards** (64-bit integer mapping) to achieve lightning-fast move generation and collision detection using raw bitwise operations.
+A high-performance chess engine built from scratch in Java. This project bypasses traditional array-based board representations in favor of **Bitboards** (64-bit integer mapping) to achieve lightning-fast move generation and collision detection using raw bitwise operations. Regularly adding positional heuristics and advanced positional concepts to improve search for better moves.
 
 ## Current Progress
 
@@ -87,4 +87,5 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * [x] Implement Special Moves (Castling, En Passant, Pawn Promotions) and State History.
 * [x] Develop a static board evaluation function.
 * [x] Implement the pure Minimax algorithm.
-* [ ] Implement Alpha-Beta Pruning optimization.
+* [x] Implement Alpha-Beta Pruning optimization.
+* [ ] Keep adding more heuristics.
