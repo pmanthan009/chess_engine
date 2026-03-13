@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>En Passant — Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:        #c9a84c;
+    --gold-light:  #f0d080;
+    --gold-dim:    #7a6030;
+    --gold-dark:   #3a2a08;
+    --sq-gold:     #c9a84c;
+    --sq-black:    #3c2e15;
+    --bg:          #0a0a0a;
+    --text:        #e8dcc8;
+    --text-dim:    #7a7060;
+    --border:      rgba(201,168,76,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cinzel', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: none;
+  }
+
+  /* ── Cursor ── */
+  .cursor {
+    width: 10px; height: 10px;
+    background: var(--gold);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: difference;
+  }
+
+  /* ── Grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1000; opacity: 0.35;
+  }
+
+  /* ── Ambient background glow ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(201,168,76,0.04) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Page layout ── */
+  .game-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5rem;
+    z-index: 1;
+    animation: fadeIn 0.8s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Board container ── */
+  .board-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Rank/file labels ── */
+  .board-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .rank-label {
+    width: 24px;
+    text-align: center;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .file-labels {
+    display: flex;
+    padding-left: 24px;
+    padding-right: 24px;
+    margin-top: 6px;
+  }
+
+  .file-label {
+    text-align: center;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    user-select: none;
+  }
+
+  /* ── The board itself ── */
+  .board-frame {
+    padding: 10px;
+    background: linear-gradient(135deg, #2a1f08, #0f0c04, #2a1f08);
+    border: 1px solid var(--gold-dim);
+    box-shadow:
+      0 0 0 1px rgba(201,168,76,0.08),
+      0 0 40px rgba(201,168,76,0.12),
+      0 0 100px rgba(201,168,76,0.06),
+      inset 0 0 20px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  /* Corner ornaments on the frame */
+  .board-frame::before,
+  .board-frame::after {
+    content: '✦';
+    position: absolute;
+    color: var(--gold-dim);
+    font-size: 0.6rem;
+    opacity: 0.6;
+  }
+  .board-frame::before { top: 3px; left: 5px; }
+  .board-frame::after  { bottom: 3px; right: 5px; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: min(72vmin, 560px);
+    height: min(72vmin, 560px);
+    border: 1px solid rgba(201,168,76,0.2);
+    overflow: hidden;
+  }
+
+  /* ── Squares ── */
+  .sq {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.15s;
+  }
+
+  /* Gold squares */
+  .sq.light {
+    background-color: var(--sq-gold);
+    background-image:
+      radial-gradient(ellipse at 30% 30%, rgba(255,235,160,0.25) 0%, transparent 60%),
+      linear-gradient(135deg, rgba(255,240,180,0.1) 0%, transparent 50%);
+  }
+
+  /* Black squares */
+  .sq.dark {
+    background-color: var(--sq-black);
+    background-image:
+      radial-gradient(ellipse at 70% 70%, rgba(201,168,76,0.04) 0%, transparent 60%);
+  }
+
+  /* Hover highlight */
+  .sq:hover {
+    filter: brightness(1.25);
+    cursor: none;
+  }
+
+  /* Selected square */
+  .sq.selected {
+    box-shadow: inset 0 0 0 3px rgba(240,208,128,0.9);
+    filter: brightness(1.15);
+  }
+
+  /* Legal move dot */
+  .sq.legal::after {
+    content: '';
+    position: absolute;
+    width: 28%;
+    height: 28%;
+    border-radius: 50%;
+    background: rgba(240,208,128,0.45);
+    pointer-events: none;
+  }
+
+  /* Legal move on occupied square — ring instead */
+  .sq.legal-capture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0;
+    box-shadow: inset 0 0 0 4px rgba(240,208,128,0.55);
+    pointer-events: none;
+  }
+
+  /* Last move highlight */
+  .sq.last-move {
+    background-image:
+      radial-gradient(ellipse at center, rgba(201,168,76,0.3) 0%, transparent 70%);
+  }
+
+  /* Check highlight */
+  .sq.in-check {
+    box-shadow: inset 0 0 0 3px rgba(220, 60, 60, 0.8);
+  }
+
+  /* ── Coordinate overlays inside squares ── */
+  .sq-coord {
+    position: absolute;
+    font-size: clamp(7px, 1.1vmin, 10px);
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    line-height: 1;
+    pointer-events: none;
+    opacity: 0.55;
+    user-select: none;
+  }
+
+  .sq-coord.file {
+    bottom: 2px;
+    right: 4px;
+  }
+
+  .sq-coord.rank {
+    top: 2px;
+    left: 4px;
+  }
+
+  /* coord color flips with square color */
+  .sq.light .sq-coord { color: var(--sq-black); }
+  .sq.dark  .sq-coord { color: var(--sq-gold); }
+
+  /* ── Side panel ── */
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 200px;
+  }
+
+  .panel-block {
+    border: 1px solid var(--border);
+    padding: 1rem 1.2rem;
+    background: rgba(201,168,76,0.03);
+    position: relative;
+  }
+
+  .panel-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 30px; height: 1px;
+    background: var(--gold);
+    opacity: 0.6;
+  }
+
+  .panel-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.5em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .panel-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+  }
+
+  /* Turn indicator */
+  .turn-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .turn-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .turn-dot.white-turn {
+    background: var(--gold-light);
+    box-shadow: 0 0 8px rgba(240,208,128,0.8);
+  }
+
+  .turn-dot.black-turn {
+    background: #111;
+    border: 1px solid var(--gold-dim);
+    box-shadow: none;
+  }
+
+  /* Move history */
+  .move-history {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    line-height: 1.8;
+    max-height: 180px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold-dim) transparent;
+  }
+
+  .move-history::-webkit-scrollbar { width: 3px; }
+  .move-history::-webkit-scrollbar-thumb { background: var(--gold-dim); }
+
+  .move-pair {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.1rem 0;
+  }
+
+  .move-num { color: var(--gold-dim); min-width: 20px; }
+  .move-w   { color: var(--text); min-width: 45px; }
+  .move-b   { color: var(--text-dim); }
+
+  /* Action buttons */
+  .action-btn {
+    display: block;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 1px solid var(--gold-dim);
+    color: var(--text-dim);
+    background: transparent;
+    cursor: none;
+    transition: color 0.25s, border-color 0.25s, background 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .action-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--gold);
+    transform: translateX(-101%);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    z-index: -1;
+  }
+
+  .action-btn:hover::before { transform: translateX(0); }
+  .action-btn:hover { color: var(--bg); border-color: var(--gold); }
+
+  /* Header bar */
+  .header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    z-index: 100;
+    border-bottom: 1px solid rgba(201,168,76,0.08);
+    background: linear-gradient(to bottom, rgba(10,10,10,0.95), transparent);
+  }
+
+  .header-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(201,168,76,0.3);
+  }
+
+  .header-mode {
+    font-size: 0.6rem;
+    letter-spacing: 0.5em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .header-back {
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    color: var(--text-dim);
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: none;
+    transition: color 0.2s;
+  }
+
+  .header-back:hover { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<!-- ── Header ── -->
+<header class="header">
+  <a href="EnPassant.html" class="header-back">← Menu</a>
+  <div class="header-title">En Passant</div>
+  <div class="header-mode" id="header-mode">Player vs Player</div>
+</header>
+
+<!-- ── Game layout ── -->
+<div class="game-wrapper">
+
+  <!-- Left panel -->
+  <div class="side-panel">
+
+    <div class="panel-block">
+      <div class="panel-label">Turn</div>
+      <div class="turn-indicator">
+        <div class="turn-dot white-turn" id="turn-dot"></div>
+        <div class="panel-value" id="turn-text">White</div>
+      </div>
+    </div>
+
+    <div class="panel-block">
+      <div class="panel-label">Move</div>
+      <div class="panel-value" id="move-count">1</div>
+    </div>
+
+    <div class="panel-block" style="flex:1">
+      <div class="panel-label">History</div>
+      <div class="move-history" id="move-history">
+        <span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game not started</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Board -->
+  <div class="board-container">
+    <div class="board-frame">
+      <div class="board" id="board"></div>
+    </div>
+
+    <!-- File labels below board -->
+    <div class="file-labels" id="file-labels"></div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="side-panel">
+
+    <div class="panel-block">
+      <div class="panel-label">Captured — White</div>
+      <div class="panel-value" id="captured-white" style="font-size:1.1rem;letter-spacing:0.05em;">—</div>
+    </div>
+
+    <div class="panel-block">
+      <div class="panel-label">Captured — Black</div>
+      <div class="panel-value" id="captured-black" style="font-size:1.1rem;letter-spacing:0.05em;">—</div>
+    </div>
+
+    <div class="panel-block">
+      <div class="panel-label">Status</div>
+      <div class="panel-value" id="game-status" style="font-size:0.8rem;letter-spacing:0.05em;color:var(--text);">In Progress</div>
+    </div>
+
+    <a href="#" class="action-btn" id="btn-new">New Game</a>
+    <a href="#" class="action-btn" id="btn-flip">Flip Board</a>
+
+  </div>
+
+</div>
+
+<script>
+  // ── Cursor ──
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top  = e.clientY + 'px';
+  });
+
+  // ── Board state ──
+  const FILES = ['a','b','c','d','e','f','g','h'];
+  let flipped = false;
+
+  function buildBoard() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const displayRow = flipped ? 7 - row : row;
+        const displayCol = flipped ? 7 - col : col;
+
+        const rank = 8 - displayRow;           // 8 down to 1
+        const file = FILES[displayCol];        // a–h
+
+        const isLight = (displayRow + displayCol) % 2 !== 0;
+        const sq = document.createElement('div');
+        sq.className = `sq ${isLight ? 'dark' : 'light'}`;
+        sq.dataset.rank = rank;
+        sq.dataset.file = file;
+        sq.dataset.sq   = `${file}${rank}`;
+
+        // Show rank label on leftmost column
+        if (col === 0) {
+          const coord = document.createElement('span');
+          coord.className = 'sq-coord rank';
+          coord.textContent = rank;
+          sq.appendChild(coord);
+        }
+
+        // Show file label on bottom row
+        if (row === 7) {
+          const coord = document.createElement('span');
+          coord.className = 'sq-coord file';
+          coord.textContent = file;
+          sq.appendChild(coord);
+        }
+
+        board.appendChild(sq);
+      }
+    }
+  }
+
+  // ── Piece Rendering (FEN Parser) ──
+  
+  // Using the classic "Alpha" SVG set hosted by Wikimedia Commons
+  const PIECE_IMAGES = {
+    'K': 'assets/wK.svg',
+    'Q': 'assets/wQ.svg',
+    'R': 'assets/wR.svg',
+    'B': 'assets/wB.svg',
+    'N': 'assets/wN.svg',
+    'P': 'assets/wP.svg',
+    'k': 'assets/bK.svg',
+    'q': 'assets/bQ.svg',
+    'r': 'assets/bR.svg',
+    'b': 'assets/bB.svg',
+    'n': 'assets/bN.svg',
+    'p': 'assets/bP.svg'
+  };
+
+  function loadFEN(fenString) {
+    // 1. Clear all existing pieces from the board first
+    document.querySelectorAll('.piece').forEach(p => p.remove());
+
+    const boardPart = fenString.split(' ')[0];
+    const rows = boardPart.split('/'); 
+
+    for (let r = 0; r < 8; r++) {
+      let fileIndex = 0; 
+      
+      for (let i = 0; i < rows[r].length; i++) {
+        const char = rows[r][i];
+        
+        if (!isNaN(char)) {
+          fileIndex += parseInt(char);
+        } else {
+          const rank = 8 - r; 
+          const file = FILES[fileIndex];
+          const squareId = `${file}${rank}`; 
+          
+          placePiece(squareId, char);
+          fileIndex++;
+        }
+      }
+    }
+  }
+
+  function placePiece(squareId, pieceChar) {
+    const squareEl = document.querySelector(`.sq[data-sq="${squareId}"]`);
+    if (!squareEl) return;
+
+    // Create an image element instead of text
+    const imgEl = document.createElement('img');
+    imgEl.src = PIECE_IMAGES[pieceChar];
+    imgEl.className = 'piece';
+    
+    // Size the SVG to fit your board perfectly
+    imgEl.style.width = '95%'; 
+    imgEl.style.height = '95%';
+    imgEl.style.position = 'absolute';
+    imgEl.style.pointerEvents = 'none'; // Clicks pass through to the square
+    imgEl.style.userSelect = 'none';
+    imgEl.style.zIndex = '10';
+    
+    // The Magic Touch: Add custom CSS drop-shadows to match your gold theme
+    if (pieceChar === pieceChar.toUpperCase()) {
+      // White pieces get a bright, warm gold glow
+      imgEl.style.filter = 'drop-shadow(0px 4px 6px rgba(240,208,128,0.4))';
+    } else {
+      // Black pieces get a heavy dark shadow with a subtle ambient gold rim light
+      imgEl.style.filter = 'drop-shadow(0px 4px 6px rgba(0,0,0,0.8)) drop-shadow(0px 0px 8px rgba(201,168,76,0.15))';
+    }
+
+    squareEl.appendChild(imgEl);
+  }
+
+  // ── Flip board ──
+  document.getElementById('btn-flip').addEventListener('click', e => {
+    e.preventDefault();
+    flipped = !flipped;
+    buildBoard();
+  });
+
+  // ── New game ──
+  document.getElementById('btn-new').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('move-history').innerHTML =
+      '<span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game not started</span>';
+    document.getElementById('move-count').textContent = '1';
+    document.getElementById('turn-text').textContent = 'White';
+    document.getElementById('turn-dot').className = 'turn-dot white-turn';
+    document.getElementById('game-status').textContent = 'In Progress';
+    buildBoard();
+  });
+
+  // ── Init ──
+  buildBoard();
+
+  // Load the standard chess starting position!
+  const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  loadFEN(STARTING_FEN);
+</script>
+</body>
+</html>
