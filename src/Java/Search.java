@@ -11,7 +11,7 @@ public class Search {
      */
     public Move getBestMove(Board board, int depth, boolean isWhite) {
         List<Move> legalMoves = generator.getLegalMoves(board, isWhite);
-        orderMoves(legalMoves);
+        orderMoves(legalMoves, board);
 
         Move bestMove = null;
         // White wants positive infinity, Black wants negative infinity
@@ -83,7 +83,7 @@ public class Search {
     private int minimax(Board board, int depth, int alpha, int beta, boolean isWhite) {
         // 1. Generate STRICTLY LEGAL moves
         List<Move> legalMoves = generator.getLegalMoves(board, isWhite);
-        orderMoves(legalMoves);
+        orderMoves(legalMoves, board);
 
         // 2. CHECKMATE / STALEMATE DETECTION
         if (legalMoves.isEmpty()) {
@@ -144,36 +144,61 @@ public class Search {
     }
 
     /**
-     * Calculates a quick heuristic "guess" of a move's quality to prioritize it in
-     * the search tree.
-     * Higher score = evaluated first.
+     * Calculates a heuristic "guess" of a move's quality to prioritize it in the search tree.
+     * Implements MVV-LVA (Most Valuable Victim - Least Valuable Attacker).
      */
-    private int guessMoveScore(Move move) {
+    private int guessMoveScore(Move move, Board board) {
         int scoreGuess = 0;
 
-        // 1. PROMOTIONS ARE KING
-        // promotedPiece IDs: 2=Knight, 3=Bishop, 4=Rook, 5=Queen
+        // Figure out what piece is moving (The Attacker)
+        int attackerValue = getPieceValueAt(board, move.startSquare);
+
+        // 1. PROMOTIONS (Massive priority, often better than captures)
         if (move.promotedPiece != 0) {
-            scoreGuess += move.promotedPiece * 100;
+            scoreGuess += move.promotedPiece * 1000; // e.g., Queen = 5000
         }
 
-        // 2. CAPTURES (Most Valuable Victim)
-        // capturedPiece IDs: 1=Pawn, 2=Knight, 3=Bishop, 4=Rook, 5=Queen
-        if (move.capturedPiece != 0) {
-            scoreGuess += move.capturedPiece * 10;
-        } else if (move.isEnPassant) {
-            scoreGuess += 10; // En passant captures a pawn (ID 1)
+        // 2. CAPTURES (MVV-LVA)
+        if (move.capturedPiece != 0 || move.isEnPassant) {
+            // Base value of the victim (En Passant captures a pawn, which is ID 1)
+            int victimValue = move.isEnPassant ? 1 : move.capturedPiece;
+
+            // MVV-LVA Formula: 
+            // e.g., Pawn takes Queen = (5 * 100) - 1 = 499
+            // Queen takes Queen = (5 * 100) - 5 = 495
+            // The AI will mathematically search the Pawn capture first!
+            scoreGuess += (victimValue * 100) - attackerValue;
+        } 
+        // 3. CASTLING
+        else {
+            // If the King (ID 6) moves exactly 2 squares, it's a Castle!
+            // Castling is generally a fantastic quiet move, so we evaluate it before random pawn pushes.
+            if (attackerValue == 6 && Math.abs(move.startSquare - move.targetSquare) == 2) {
+                scoreGuess += 50;
+            }
         }
 
         return scoreGuess;
     }
 
     /**
-     * Sorts the move list so the most promising moves (captures/promotions) are
-     * evaluated first,
-     * drastically increasing Alpha-Beta pruning cutoffs.
+     * Helper method to identify the moving piece's value for the MVV-LVA calculation.
      */
-    private void orderMoves(List<Move> moves) {
-        moves.sort((m1, m2) -> Integer.compare(guessMoveScore(m2), guessMoveScore(m1)));
+    private int getPieceValueAt(Board board, int square) {
+        long mask = 1L << square;
+        if ((board.whitePawns & mask) != 0 || (board.blackPawns & mask) != 0) return 1;
+        if ((board.whiteKnights & mask) != 0 || (board.blackKnights & mask) != 0) return 2;
+        if ((board.whiteBishops & mask) != 0 || (board.blackBishops & mask) != 0) return 3;
+        if ((board.whiteRooks & mask) != 0 || (board.blackRooks & mask) != 0) return 4;
+        if ((board.whiteQueens & mask) != 0 || (board.blackQueens & mask) != 0) return 5;
+        if ((board.whiteKing & mask) != 0 || (board.blackKing & mask) != 0) return 6; 
+        return 0; // Should never happen
+    }
+
+    /**
+     * Sorts the move list. (Make sure you update your method calls to pass the Board!)
+     */
+    private void orderMoves(List<Move> moves, Board board) {
+        moves.sort((m1, m2) -> Integer.compare(guessMoveScore(m2, board), guessMoveScore(m1, board)));
     }
 }

@@ -18,6 +18,39 @@ public class Evaluator {
     // We can shift this left to check any file on the board!
     private static final long FILE_A = 0x0101010101010101L;
     
+    // --- PASSED PAWN MASKS & BONUSES ---
+    private static final long[] WHITE_PASSED_MASKS = new long[64];
+    private static final long[] BLACK_PASSED_MASKS = new long[64];
+    
+    // Bonus scales violently as the pawn gets closer to promotion!
+    // Index = Rank (0 to 7). Rank 6 is right before promotion for White.
+    private static final int[] PASSED_PAWN_BONUSES = {0, 10, 10, 15, 25, 50, 80, 0}; 
+
+    // Static initializer block runs exactly once when the program starts
+    static {
+        long fileA = 0x0101010101010101L;
+        for (int i = 0; i < 64; i++) {
+            int rank = i / 8;
+            int file = i % 8;
+            
+            // Build the 3-file wide span
+            long fileMask = fileA << file;
+            long leftFile = (file > 0) ? (fileA << (file - 1)) : 0L;
+            long rightFile = (file < 7) ? (fileA << (file + 1)) : 0L;
+            long span = fileMask | leftFile | rightFile;
+
+            // White: Everything in the span ABOVE the pawn
+            long whiteForward = 0L;
+            for (int r = rank + 1; r < 8; r++) whiteForward |= (0xFFL << (r * 8));
+            WHITE_PASSED_MASKS[i] = span & whiteForward;
+
+            // Black: Everything in the span BELOW the pawn
+            long blackForward = 0L;
+            for (int r = rank - 1; r >= 0; r--) blackForward |= (0xFFL << (r * 8));
+            BLACK_PASSED_MASKS[i] = span & blackForward;
+        }
+    }
+
     // Positional Bonuses
     private static final int BISHOP_PAIR_BONUS = 50;
     private static final int ROOK_SEMI_OPEN_FILE = 15;
@@ -152,6 +185,35 @@ public class Evaluator {
                 }
             }
             bRooks &= (bRooks - 1); // Clear the LSB
+        }
+
+        // 3. PASSED PAWNS
+        
+        // Evaluate White Passed Pawns
+        long wPawnsForPass = board.whitePawns;
+        while (wPawnsForPass != 0) {
+            int sq = Long.numberOfTrailingZeros(wPawnsForPass);
+            
+            // If the Black Pawns bitboard has absolutely ZERO overlap with this White pawn's forward span...
+            if ((WHITE_PASSED_MASKS[sq] & board.blackPawns) == 0) {
+                int rank = sq / 8;
+                whiteScore += PASSED_PAWN_BONUSES[rank]; // Massive bonus for pushing!
+            }
+            wPawnsForPass &= (wPawnsForPass - 1);
+        }
+
+        // Evaluate Black Passed Pawns
+        long bPawnsForPass = board.blackPawns;
+        while (bPawnsForPass != 0) {
+            int sq = Long.numberOfTrailingZeros(bPawnsForPass);
+            
+            if ((BLACK_PASSED_MASKS[sq] & board.whitePawns) == 0) {
+                int rank = sq / 8;
+                // Black moves down the board, so Rank 1 (Index 1) is their 7th rank!
+                // We flip the index so Black gets the big +80 bonus when they reach the bottom.
+                blackScore += PASSED_PAWN_BONUSES[7 - rank]; 
+            }
+            bPawnsForPass &= (bPawnsForPass - 1);
         }
 
         // Positive means White is winning, Negative means Black is winning

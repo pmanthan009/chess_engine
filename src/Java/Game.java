@@ -187,6 +187,6 @@ public class Game {
     public static void main(String[] args) {
         Game game = new Game();
         // Play against the AI! Depth 4, and you are White (true).
-        game.playHumanVsAI(6, true);
+        game.playHumanVsAI(7, true);
     }
 }
