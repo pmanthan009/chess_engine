@@ -88,4 +88,5 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * [x] Develop a static board evaluation function.
 * [x] Implement the pure Minimax algorithm.
 * [x] Implement Alpha-Beta Pruning optimization.
+* [ ] Teach openings.
 * [ ] Keep adding more heuristics.
