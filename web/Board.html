@@ -618,13 +618,24 @@
   // ── New game ──
   document.getElementById('btn-new').addEventListener('click', e => {
     e.preventDefault();
-    document.getElementById('move-history').innerHTML =
-      '<span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game not started</span>';
-    document.getElementById('move-count').textContent = '1';
-    document.getElementById('turn-text').textContent = 'White';
-    document.getElementById('turn-dot').className = 'turn-dot white-turn';
-    document.getElementById('game-status').textContent = 'In Progress';
-    buildBoard();
+    
+    // Tell Java to wipe the board and start over
+    fetch('http://localhost:8080/api/move', {
+        method: 'POST',
+        body: 'RESET'
+    })
+    .then(response => response.text())
+    .then(newFen => {
+        loadFEN(newFen); // Redraw the fresh board
+        
+        // Reset the UI text
+        document.getElementById('move-history').innerHTML = 
+            '<span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game started</span>';
+        document.getElementById('move-count').textContent = '1';
+        document.getElementById('turn-text').textContent = 'White';
+        document.getElementById('turn-dot').className = 'turn-dot white-turn';
+        document.getElementById('game-status').textContent = 'In Progress';
+    });
   });
 
   // ── Interaction Logic ──
@@ -656,14 +667,40 @@
           // They clicked the same square again. Deselect it.
           clearSelection();
         } else {
-          // They clicked a destination! 
+        // They clicked a destination! 
           const moveString = selectedSquare + sqId; // e.g., "e2e4"
-          
           console.log("Attempting to send move to Java: " + moveString);
           
-          // TODO: Send this move to the Java Backend via fetch()
+          // 1. Update UI to show Engine is thinking
+          document.getElementById('turn-text').textContent = 'Engine Running...';
+          document.getElementById('turn-dot').className = 'turn-dot black-turn';
+          boardEl.style.pointerEvents = 'none'; // Lock the board so human can't click
           
-          clearSelection();
+          // 2. Send the move to your Java Server
+          fetch('http://localhost:8080/api/move', {
+              method: 'POST',
+              body: moveString
+          })
+          .then(response => response.text())
+          .then(newFen => {
+              console.log("Received new state from Engine: " + newFen);
+              
+              // 3. Update the visual board!
+              loadFEN(newFen); 
+
+              // 4. Reset UI back to Player's turn
+              document.getElementById('turn-text').textContent = 'White';
+              document.getElementById('turn-dot').className = 'turn-dot white-turn';
+              boardEl.style.pointerEvents = 'auto'; // Unlock the board
+              
+              clearSelection();
+          })
+          .catch(error => {
+              console.error("Engine communication failed:", error);
+              document.getElementById('turn-text').textContent = 'Connection Error';
+              boardEl.style.pointerEvents = 'auto';
+              clearSelection();
+          });
         }
       }
     });
