@@ -627,12 +627,65 @@
     buildBoard();
   });
 
+  // ── Interaction Logic ──
+  
+  let selectedSquare = null;
+
+  function initInteractions() {
+    const boardEl = document.getElementById('board');
+    
+    // Listen for clicks on the entire board
+    boardEl.addEventListener('click', function(e) {
+      // Find the closest square element to the click (handles clicks on the piece images too)
+      const sqEl = e.target.closest('.sq');
+      if (!sqEl) return; // Didn't click a square
+      
+      const sqId = sqEl.dataset.sq; // e.g., "e2"
+      
+      // Scenario 1: We haven't selected anything yet
+      if (!selectedSquare) {
+        // Only select it if there is a piece on it!
+        if (sqEl.querySelector('.piece')) {
+          selectedSquare = sqId;
+          sqEl.classList.add('selected'); // This triggers your glowing CSS effect
+        }
+      } 
+      // Scenario 2: We already have a piece selected
+      else {
+        if (selectedSquare === sqId) {
+          // They clicked the same square again. Deselect it.
+          clearSelection();
+        } else {
+          // They clicked a destination! 
+          const moveString = selectedSquare + sqId; // e.g., "e2e4"
+          
+          console.log("Attempting to send move to Java: " + moveString);
+          
+          // TODO: Send this move to the Java Backend via fetch()
+          
+          clearSelection();
+        }
+      }
+    });
+  }
+
+  function clearSelection() {
+    selectedSquare = null;
+    // Remove the 'selected' glow from all squares
+    document.querySelectorAll('.sq.selected').forEach(sq => {
+      sq.classList.remove('selected');
+    });
+  }
+
   // ── Init ──
   buildBoard();
 
   // Load the standard chess starting position!
   const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   loadFEN(STARTING_FEN);
+
+  // Activate the click listeners!
+  initInteractions();
 </script>
 </body>
 </html>
