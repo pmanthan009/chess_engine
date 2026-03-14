@@ -101,7 +101,7 @@
     .logo {
       width: clamp(60px, 10vw, 100px);
       height: auto;
-      margin: 0 auto 1rem;
+      margin: 0 auto 3rem;
       display: block;
       filter: drop-shadow(0 0 20px rgba(201, 168, 76, 0.4));
     }
@@ -135,11 +135,12 @@
     }
 
     .engine-sub {
+      font-family: 'Cinzel', serif;
       font-size: clamp(0.65rem, 1.5vw, 0.85rem);
       font-weight: 600;
       letter-spacing: 0.4em;
       color: var(--text-dim);
-      margin-top: 0.6rem;
+      margin-top: 1rem;
       text-transform: uppercase;
     }
 
@@ -159,6 +160,7 @@
     .scroll-hint {
       z-index: 2;
       text-align: center;
+      margin-top: 5rem;
       animation: fadeUp 1.6s 0.4s ease both;
     }
 
@@ -441,23 +443,8 @@
 
     <div class="title-block">
       <img src="Logo.png" alt="En Passant Logo" class="logo" />
-      <div class="engine-label">En Passant</div>
-      <div class="engine-sub">Chess Game</div>
-    </div>
-
-    <div class="piece-wrap">
-      <svg id="chess-piece" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
-        <g id="pawn-svg" fill="none">
-          <ellipse cx="50" cy="108" rx="28" ry="7" fill="rgba(201,168,76,0.2)" />
-          <rect x="33" y="96" width="34" height="10" rx="3" fill="#c9a84c" />
-          <rect x="40" y="70" width="20" height="30" rx="4" fill="#c9a84c" />
-          <line x1="40" y1="88" x2="60" y2="88" stroke="rgba(0,0,0,0.2)" stroke-width="1" />
-          <circle cx="50" cy="60" r="13" fill="#c9a84c" />
-          <circle cx="50" cy="60" r="8" fill="#b8943e" />
-          <circle cx="50" cy="60" r="5" fill="#c9a84c" />
-          <circle cx="46" cy="57" r="2.5" fill="rgba(255,255,255,0.25)" />
-        </g>
-      </svg>
+      <div class="engine-label">EN PASSANT</div>
+      <div class="engine-sub">CHESS GAME</div>
     </div>
 
     <div class="scroll-hint">
