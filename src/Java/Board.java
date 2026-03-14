@@ -377,4 +377,49 @@ public class Board {
         blackPieces = blackPawns | blackKnights | blackBishops | blackRooks | blackQueens | blackKing;
         allPieces = whitePieces | blackPieces;
     }
+
+    /**
+     * Translates the current Bitboard state into a FEN string for the web frontend.
+     */
+    public String toFEN() {
+        StringBuilder fen = new StringBuilder();
+        
+        // FEN starts at Rank 8 (Index 7) and goes down to Rank 1 (Index 0)
+        for (int rank = 7; rank >= 0; rank--) {
+            int emptyCount = 0;
+            for (int file = 0; file < 8; file++) {
+                int sq = rank * 8 + file;
+                long mask = 1L << sq;
+                
+                char piece = ' ';
+                if ((whitePawns & mask) != 0) piece = 'P';
+                else if ((whiteKnights & mask) != 0) piece = 'N';
+                else if ((whiteBishops & mask) != 0) piece = 'B';
+                else if ((whiteRooks & mask) != 0) piece = 'R';
+                else if ((whiteQueens & mask) != 0) piece = 'Q';
+                else if ((whiteKing & mask) != 0) piece = 'K';
+                else if ((blackPawns & mask) != 0) piece = 'p';
+                else if ((blackKnights & mask) != 0) piece = 'n';
+                else if ((blackBishops & mask) != 0) piece = 'b';
+                else if ((blackRooks & mask) != 0) piece = 'r';
+                else if ((blackQueens & mask) != 0) piece = 'q';
+                else if ((blackKing & mask) != 0) piece = 'k';
+
+                if (piece == ' ') {
+                    emptyCount++;
+                } else {
+                    if (emptyCount > 0) {
+                        fen.append(emptyCount);
+                        emptyCount = 0;
+                    }
+                    fen.append(piece);
+                }
+            }
+            if (emptyCount > 0) fen.append(emptyCount);
+            if (rank > 0) fen.append('/'); // New line for the next rank
+        }
+        
+        // Return the board state layout
+        return fen.toString() + " w KQkq - 0 1"; 
+    }
 }
