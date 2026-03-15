@@ -5,6 +5,14 @@
 ## Overview
 A high-performance chess engine built from scratch in Java. This project bypasses traditional array-based board representations in favor of **Bitboards** (64-bit integer mapping) to achieve lightning-fast move generation and collision detection using raw bitwise operations. Regularly adding positional heuristics and advanced positional concepts to improve search for better moves.
 
+## Tech Stack
+* **Core Engine:** Java (No external dependencies/frameworks)
+* **Web Server:** Native Java `com.sun.net.httpserver`
+* **Frontend:** HTML5, CSS3 (Custom animations & SVGs), Vanilla JavaScript
+* **API Communication:** RESTful `POST` endpoints, Fetch API, FEN (Forsyth-Edwards Notation) strings
+* **Algorithms:** Minimax, Alpha-Beta Pruning, MVV-LVA Move Ordering
+* **Data Structures:** 64-bit Bitboards, Magic Bitboards, Piece-Square Tables (PSTs)
+
 ## Current Progress
 
 ### 1. Board Representation
@@ -55,8 +63,10 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * **UCI-Style Output Formatting:** Translates raw centipawn evaluations into standard engine readouts (e.g., `+1.20`) and converts forced mate scores into clean `+M2` formatting.
 * **Interactive Playable Loop:** Developed a human vs. AI console interface that parses standard algebraic notation (`e2e4`) and validates human inputs against the strictly legal move generator.
 
-### 7. Debugging Utilities
-* **Console Visualizer:** Includes a utility to print any 64-bit integer as an 8x8 grid to the console, making it easy to visually verify bitwise operations and attack masks.
+### 7. Full-Stack Web Interface
+* **Native HTTP Server:** Built a lightweight local server handling static file delivery and RESTful API requests.
+* **FEN Serialization:** Translates complex 64-bit board states into Forsyth-Edwards Notation strings to communicate seamlessly with the frontend.
+* **Premium UI/UX:** Developed a responsive, dark-mode graphical interface using Vanilla JS, featuring optimistic UI rendering for zero-latency human piece movement, dynamic legal-move highlighting, and scrolling SVG backgrounds.
 
 ## Test Outputs
 
@@ -80,13 +90,10 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 <img width="632" height="531" alt="Screenshot 2026-03-06 235214" src="https://github.com/user-attachments/assets/114cf213-e894-499b-9626-a75aa2ce3f80" />
 
 ## Next Steps
-* [x] Implement pre-calculated attack tables for the King.
-* [x] Implement sliding piece move generation (Rooks, Bishops, Queens) using Magic Bitboards.
-* [x] Build the `makeMove()` and `undoMove()` functions to transition board states.
-* [x] Implement `isSquareAttacked()` for spatial awareness.
-* [x] Implement Special Moves (Castling, En Passant, Pawn Promotions) and State History.
 * [x] Develop a static board evaluation function.
 * [x] Implement the pure Minimax algorithm.
 * [x] Implement Alpha-Beta Pruning optimization.
 * [ ] Teach openings.
 * [ ] Keep adding more heuristics.
+* [ ] Implement Transposition Tables (Zobrist Hashing) to give the Engine positional memory.
+* [ ] Populate algebraic move history in the UI side panel.
