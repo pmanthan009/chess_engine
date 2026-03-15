@@ -204,14 +204,14 @@
     position: absolute;
     inset: 0;
     border-radius: 0;
-    box-shadow: inset 0 0 0 4px rgba(240,208,128,0.55);
+    box-shadow: inset 0 0 0 4px rgba(87, 2, 2, 0.979);
     pointer-events: none;
   }
 
   /* Last move highlight */
   .sq.last-move {
     background-image:
-      radial-gradient(ellipse at center, rgba(201,168,76,0.3) 0%, transparent 70%);
+      radial-gradient(circle at center, rgba(117, 108, 194, 0.245) 90%, transparent 100%);
   }
 
   /* Check highlight */
@@ -641,66 +641,49 @@
   // ── Interaction Logic ──
   
   let selectedSquare = null;
+  let currentLegalMoves = []; // Stores the moves Java sends us
 
   function initInteractions() {
     const boardEl = document.getElementById('board');
     
-    // Listen for clicks on the entire board
     boardEl.addEventListener('click', function(e) {
-      // Find the closest square element to the click (handles clicks on the piece images too)
       const sqEl = e.target.closest('.sq');
-      if (!sqEl) return; // Didn't click a square
+      if (!sqEl) return; 
       
-      const sqId = sqEl.dataset.sq; // e.g., "e2"
+      const sqId = sqEl.dataset.sq; 
       
-      // Scenario 1: We haven't selected anything yet
       if (!selectedSquare) {
-        // Only select it if there is a piece on it!
-        if (sqEl.querySelector('.piece')) {
+        // Only select the piece if it actually has legal moves available!
+        const validDests = currentLegalMoves.filter(m => m.startsWith(sqId)).map(m => m.substring(2, 4));
+        
+        if (validDests.length > 0) {
           selectedSquare = sqId;
-          sqEl.classList.add('selected'); // This triggers your glowing CSS effect
+          sqEl.classList.add('selected');
+          
+          // Draw the legal move indicators
+          validDests.forEach(destSq => {
+            const destEl = document.querySelector(`.sq[data-sq="${destSq}"]`);
+            if (destEl) {
+              if (destEl.querySelector('.piece')) {
+                destEl.classList.add('legal-capture'); // Draw the target ring
+              } else {
+                destEl.classList.add('legal'); // Draw the dot
+              }
+            }
+          });
         }
-      } 
-      // Scenario 2: We already have a piece selected
-      else {
+      } else {
         if (selectedSquare === sqId) {
-          // They clicked the same square again. Deselect it.
           clearSelection();
         } else {
-        // They clicked a destination! 
-          const moveString = selectedSquare + sqId; // e.g., "e2e4"
-          console.log("Attempting to send move to Java: " + moveString);
+          const moveString = selectedSquare + sqId; 
           
-          // 1. Update UI to show Engine is thinking
-          document.getElementById('turn-text').textContent = 'Engine Running...';
-          document.getElementById('turn-dot').className = 'turn-dot black-turn';
-          boardEl.style.pointerEvents = 'none'; // Lock the board so human can't click
-          
-          // 2. Send the move to your Java Server
-          fetch('http://localhost:8080/api/move', {
-              method: 'POST',
-              body: moveString
-          })
-          .then(response => response.text())
-          .then(newFen => {
-              console.log("Received new state from Engine: " + newFen);
-              
-              // 3. Update the visual board!
-              loadFEN(newFen); 
-
-              // 4. Reset UI back to Player's turn
-              document.getElementById('turn-text').textContent = 'White';
-              document.getElementById('turn-dot').className = 'turn-dot white-turn';
-              boardEl.style.pointerEvents = 'auto'; // Unlock the board
-              
-              clearSelection();
-          })
-          .catch(error => {
-              console.error("Engine communication failed:", error);
-              document.getElementById('turn-text').textContent = 'Connection Error';
-              boardEl.style.pointerEvents = 'auto';
-              clearSelection();
-          });
+          // Only send the move to Java if it's strictly legal!
+          if (currentLegalMoves.includes(moveString)) {
+            sendMoveToJava(moveString);
+          } else {
+            clearSelection(); // They clicked an illegal square, just dismiss
+          }
         }
       }
     });
@@ -708,21 +691,91 @@
 
   function clearSelection() {
     selectedSquare = null;
-    // Remove the 'selected' glow from all squares
-    document.querySelectorAll('.sq.selected').forEach(sq => {
-      sq.classList.remove('selected');
+    document.querySelectorAll('.sq.selected').forEach(sq => sq.classList.remove('selected'));
+    document.querySelectorAll('.sq.legal').forEach(sq => sq.classList.remove('legal'));
+    document.querySelectorAll('.sq.legal-capture').forEach(sq => sq.classList.remove('legal-capture'));
+  }
+
+  function sendMoveToJava(moveString) {
+
+    if (moveString !== 'RESET') {
+      const startSq = moveString.substring(0, 2);
+      const targetSq = moveString.substring(2, 4);
+      const startEl = document.querySelector(`.sq[data-sq="${startSq}"]`);
+      const targetEl = document.querySelector(`.sq[data-sq="${targetSq}"]`);
+      
+      if (startEl && targetEl) {
+        const pieceImg = startEl.querySelector('.piece');
+        if (pieceImg) {
+          // If there is an enemy piece there, remove it visually
+          const enemyPiece = targetEl.querySelector('.piece');
+          if (enemyPiece) enemyPiece.remove(); 
+          
+          // Move our piece to the new square!
+          targetEl.appendChild(pieceImg); 
+        }
+        
+        // Instantly update the highlights for the human move
+        document.querySelectorAll('.sq.last-move').forEach(sq => sq.classList.remove('last-move'));
+        startEl.classList.add('last-move');
+        targetEl.classList.add('last-move');
+      }
+    }
+    // ==========================================
+
+    const boardEl = document.getElementById('board');
+    document.getElementById('turn-text').textContent = 'Engine Running...';
+    document.getElementById('turn-dot').className = 'turn-dot black-turn';
+    boardEl.style.pointerEvents = 'none'; 
+    
+    // 2. Ask Java what the AI's response is
+    fetch('http://localhost:8080/api/move', {
+        method: 'POST',
+        body: moveString
+    })
+    .then(response => response.text())
+    .then(data => {
+        const parts = data.split('|');
+        const newFen = parts[0];
+        const lastMove = parts[1];
+        const movesStr = parts[2];
+        
+        currentLegalMoves = movesStr.split(',').filter(m => m.length === 4);
+        
+        // 3. Redraw the board to the absolute true state calculated by Java
+        loadFEN(newFen); 
+
+        // 4. Highlight the AI's move
+        document.querySelectorAll('.sq.last-move').forEach(sq => sq.classList.remove('last-move'));
+        if (lastMove && lastMove.length === 4) {
+            const startSq = lastMove.substring(0, 2);
+            const targetSq = lastMove.substring(2, 4);
+            document.querySelector(`.sq[data-sq="${startSq}"]`)?.classList.add('last-move');
+            document.querySelector(`.sq[data-sq="${targetSq}"]`)?.classList.add('last-move');
+        }
+
+        document.getElementById('turn-text').textContent = 'White';
+        document.getElementById('turn-dot').className = 'turn-dot white-turn';
+        boardEl.style.pointerEvents = 'auto'; 
+        
+        clearSelection();
     });
   }
 
+  // ── New game ──
+  document.getElementById('btn-new').addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById('move-history').innerHTML = 
+        '<span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game started</span>';
+    document.getElementById('move-count').textContent = '1';
+    
+    sendMoveToJava('RESET'); // Ask Java for a fresh board
+  });
+
   // ── Init ──
   buildBoard();
-
-  // Load the standard chess starting position!
-  const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  loadFEN(STARTING_FEN);
-
-  // Activate the click listeners!
   initInteractions();
+  sendMoveToJava('RESET'); // On page load, fetch the starting position and legal moves!
 </script>
 </body>
 </html>

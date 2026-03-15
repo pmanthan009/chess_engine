@@ -34,56 +34,56 @@ public class WebServer {
         System.out.println("Engine Web Server running! Open http://localhost:8080/EnPassant.html in your browser.");
     }
 
-    // --- API HANDLER: Processes human move, plays Engine move, returns FEN ---
+    // --- API HANDLER: Processes human move, plays Engine move, returns bundled data ---
     static class MoveHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if ("POST".equals(exchange.getRequestMethod())) {
-                // Read the "e2e4" string from Javascript
                 InputStream is = exchange.getRequestBody();
                 String humanMoveStr = new String(is.readAllBytes()).trim();
                 System.out.println("Received move from frontend: " + humanMoveStr);
 
-                // Restart the game if they send "RESET"
+                String lastMoveStr = "";
+
                 if (humanMoveStr.equals("RESET")) {
                     board = new Board();
-                    sendResponse(exchange, board.toFEN());
-                    return;
-                }
-
-                // 1. Parse and validate human move
-                if (humanMoveStr.length() >= 4) {
+                } else if (humanMoveStr.length() >= 4) {
                     int startSq = parseSquare(humanMoveStr.substring(0, 2));
                     int targetSq = parseSquare(humanMoveStr.substring(2, 4));
-
-                    List<Move> legalMoves = generator.getLegalMoves(board, true); // White's turn
+                    
+                    List<Move> legalMoves = generator.getLegalMoves(board, true);
                     Move chosenMove = null;
-
                     for (Move m : legalMoves) {
                         if (m.startSquare == startSq && m.targetSquare == targetSq) {
-                            chosenMove = m;
-                            break;
+                            chosenMove = m; break;
                         }
                     }
 
                     if (chosenMove != null) {
-                        // Play Human Move
                         board.makeMove(chosenMove, true);
-
-                        // Let the Engine Think (Depth 5 for maximum speed + strength)
+                        lastMoveStr = humanMoveStr; // Default to human move
+                        
+                        // Engine's Turn
                         Move aiMove = ai.getBestMove(board, 5, false);
                         if (aiMove != null) {
                             board.makeMove(aiMove, false);
+                            lastMoveStr = squareToAlgebraic(aiMove.startSquare) + squareToAlgebraic(aiMove.targetSquare);
                         }
-                    } else {
-                        System.out.println("Illegal move attempted!");
                     }
                 }
 
-                // Return the updated FEN string to JavaScript
-                sendResponse(exchange, board.toFEN());
-            } else {
-                exchange.sendResponseHeaders(405, -1); // Method not allowed
+                // Generate legal moves for the human's NEXT turn (White)
+                StringBuilder movesStr = new StringBuilder();
+                List<Move> humanLegalMoves = generator.getLegalMoves(board, true);
+                for (Move m : humanLegalMoves) {
+                    movesStr.append(squareToAlgebraic(m.startSquare))
+                            .append(squareToAlgebraic(m.targetSquare))
+                            .append(",");
+                }
+
+                // Bundle the data: FEN | LAST_MOVE | LEGAL_MOVES
+                String finalResponse = board.toFEN() + "|" + lastMoveStr + "|" + movesStr.toString();
+                sendResponse(exchange, finalResponse);
             }
         }
 
@@ -93,9 +93,15 @@ public class WebServer {
             return rank * 8 + file;
         }
 
+        // Helper to convert index (e.g., 12) to text (e.g., "e2")
+        private String squareToAlgebraic(int sq) {
+            int file = sq % 8;
+            int rank = sq / 8;
+            return "" + (char)('a' + file) + (char)('1' + rank);
+        }
+
         private void sendResponse(HttpExchange exchange, String response) throws IOException {
             exchange.getResponseHeaders().set("Content-Type", "text/plain");
-            // Allow CORS just in case you run the frontend separately later
             exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, response.length());
             OutputStream os = exchange.getResponseBody();

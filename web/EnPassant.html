@@ -91,6 +91,23 @@
       }
     }
 
+    .piece-grid {
+      position: absolute;
+      inset: -320px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 320' width='320' height='320'%3E%3Ctext x='40' y='55' font-size='45' text-anchor='middle' fill='%23c9a84c' opacity='0.15'%3E%E2%99%98%3C/text%3E%3Ctext x='200' y='135' font-size='35' text-anchor='middle' fill='%23c9a84c' opacity='0.2'%3E%E2%99%99%3C/text%3E%3Ctext x='120' y='295' font-size='40' text-anchor='middle' fill='%23c9a84c' opacity='0.15'%3E%E2%99%95%3C/text%3E%3Ctext x='280' y='215' font-size='40' text-anchor='middle' fill='%23c9a84c' opacity='0.15'%3E%E2%99%96%3C/text%3E%3C/svg%3E");
+      background-size: 320px 320px;
+      animation: pieceDrift 20s linear infinite;
+    }
+
+    @keyframes pieceDrift {
+      0% {
+        transform: translate(0, 0);
+      }
+      100% {
+        transform: translate(320px, 320px);
+      }
+    }
+
     .vignette {
       position: absolute;
       inset: 0;
@@ -439,6 +456,7 @@
   <!-- ─── SECTION 1: Landing ─── -->
   <section id="landing">
     <div class="board-grid"></div>
+    <div class="piece-grid"></div>
     <div class="vignette"></div>
 
     <div class="title-block">
