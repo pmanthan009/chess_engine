@@ -825,8 +825,31 @@
             document.querySelector(`.sq[data-sq="${targetSq}"]`)?.classList.add('last-move');
           }
 
+          // ==========================================
+          // ── GAME OVER CHECK ──
+          // ==========================================
+          if (currentLegalMoves.length === 0) {
+            const winner = activeTurn === 'White' ? 'Black' : 'White';
+            
+            document.getElementById('turn-text').textContent = 'Checkmate';
+            
+            // If you have a game-status element, update it. Otherwise, just update turn-text.
+            const statusEl = document.getElementById('game-status');
+            if(statusEl) {
+                statusEl.textContent = `${winner} Wins!`;
+                statusEl.style.color = 'var(--gold)';
+            }
+            
+            document.getElementById('turn-dot').style.display = 'none'; 
+            boardEl.style.pointerEvents = 'none'; // Lock the board permanently
+            clearSelection();
+            return; // STOP execution here!
+          }
+          // ==========================================
+
           // 3. Dynamically update the UI side panel to show whose turn it is
           document.getElementById('turn-text').textContent = activeTurn;
+          document.getElementById('turn-dot').style.display = 'inline-block'; // Ensure dot is visible
           document.getElementById('turn-dot').className = activeTurn === 'White' ? 'turn-dot white-turn' : 'turn-dot black-turn';
           boardEl.style.pointerEvents = 'auto';
 

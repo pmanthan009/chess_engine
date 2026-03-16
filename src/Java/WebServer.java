@@ -17,6 +17,7 @@ public class WebServer {
     private static Board board = new Board();
     private static MoveGen generator = new MoveGen();
     private static Search ai = new Search();
+    private static OpeningBook book = new OpeningBook();
     private static boolean isWhiteTurn = true;
 
     public static void main(String[] args) throws Exception {
@@ -78,12 +79,41 @@ public class WebServer {
 
                         // ONLY trigger the Engine if we are in CPU mode AND it is Black's turn
                         if (mode.equals("CPU") && !isWhiteTurn) {
-                            Move aiMove = ai.getBestMove(board, 6, false);
-                            if (aiMove != null) {
-                                board.makeMove(aiMove, false);
-                                lastMoveStr = squareToAlgebraic(aiMove.startSquare)
-                                        + squareToAlgebraic(aiMove.targetSquare);
-                                isWhiteTurn = true; // Flip back to White
+
+                            // 1. Check the Opening Book FIRST
+                            String bookMoveStr = book.getBookMove(board.toFEN());
+
+                            if (bookMoveStr != null) {
+                                System.out.println("Book move found! Playing: " + bookMoveStr);
+
+                                // We need to convert the string (e.g., "e7e5") into a real Move object
+                                int bookStartSq = parseSquare(bookMoveStr.substring(0, 2));
+                                int bookTargetSq = parseSquare(bookMoveStr.substring(2, 4));
+
+                                Move chosenBookMove = null;
+                                for (Move m : generator.getLegalMoves(board, false)) { // false = Black
+                                    if (m.startSquare == bookStartSq && m.targetSquare == bookTargetSq) {
+                                        chosenBookMove = m;
+                                        break;
+                                    }
+                                }
+
+                                if (chosenBookMove != null) {
+                                    board.makeMove(chosenBookMove, false);
+                                    lastMoveStr = bookMoveStr;
+                                    isWhiteTurn = true; // Flip back to White
+                                }
+                            }
+                            // 2. Out of book! Turn on the Minimax Engine
+                            else {
+                                System.out.println("Out of book. Engine Running...");
+                                Move aiMove = ai.getBestMove(board, 6, false);
+                                if (aiMove != null) {
+                                    board.makeMove(aiMove, false);
+                                    lastMoveStr = squareToAlgebraic(aiMove.startSquare)
+                                            + squareToAlgebraic(aiMove.targetSquare);
+                                    isWhiteTurn = true; // Flip back to White
+                                }
                             }
                         }
                     }
