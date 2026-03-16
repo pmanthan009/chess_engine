@@ -93,7 +93,7 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * [x] Develop a static board evaluation function.
 * [x] Implement the pure Minimax algorithm.
 * [x] Implement Alpha-Beta Pruning optimization.
-* [ ] Teach openings.
+* [x] Teach openings.
 * [ ] Keep adding more heuristics.
 * [ ] Implement Transposition Tables (Zobrist Hashing) to give the Engine positional memory.
 * [ ] Populate algebraic move history in the UI side panel.
