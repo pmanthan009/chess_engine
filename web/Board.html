@@ -500,14 +500,6 @@
         <div class="panel-label">Move</div>
         <div class="panel-value" id="move-count">1</div>
       </div>
-
-      <div class="panel-block" style="flex:1">
-        <div class="panel-label">History</div>
-        <div class="move-history" id="move-history">
-          <span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game not started</span>
-        </div>
-      </div>
-
     </div>
 
     <!-- Board -->
@@ -684,6 +676,7 @@
       e.preventDefault();
       flipped = !flipped;
       buildBoard();
+      loadFEN(currentFen);
     });
 
     // ── New game ──
@@ -700,8 +693,6 @@
           loadFEN(newFen); // Redraw the fresh board
 
           // Reset the UI text
-          document.getElementById('move-history').innerHTML =
-            '<span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game started</span>';
           document.getElementById('move-count').textContent = '1';
           document.getElementById('turn-text').textContent = 'White';
           document.getElementById('turn-dot').className = 'turn-dot white-turn';
@@ -713,6 +704,9 @@
 
     let selectedSquare = null;
     let currentLegalMoves = []; // Stores the moves Java sends us
+
+    // Store the current FEN so we can redraw it when the board flips
+    let currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 
     function initInteractions() {
       const boardEl = document.getElementById('board');
@@ -814,7 +808,7 @@
           const activeTurn = parts[3]; // "White" or "Black"
 
           currentLegalMoves = movesStr.split(',').filter(m => m.length === 4);
-
+          currentFen = newFen;
           loadFEN(newFen);
 
           document.querySelectorAll('.sq.last-move').forEach(sq => sq.classList.remove('last-move'));
@@ -860,8 +854,6 @@
     // ── New game ──
     document.getElementById('btn-new').addEventListener('click', e => {
       e.preventDefault();
-      document.getElementById('move-history').innerHTML =
-        '<span style="color:var(--text-dim);font-size:0.65rem;opacity:0.5;">Game started</span>';
       document.getElementById('move-count').textContent = '1';
 
       sendMoveToJava('RESET'); // Ask Java for a fresh board
