@@ -707,6 +707,7 @@
 
     // Store the current FEN so we can redraw it when the board flips
     let currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    let currentMoveNumber = 1;
 
     function initInteractions() {
       const boardEl = document.getElementById('board');
@@ -824,17 +825,17 @@
           // ==========================================
           if (currentLegalMoves.length === 0) {
             const winner = activeTurn === 'White' ? 'Black' : 'White';
-            
+
             document.getElementById('turn-text').textContent = 'Checkmate';
-            
+
             // If you have a game-status element, update it. Otherwise, just update turn-text.
             const statusEl = document.getElementById('game-status');
-            if(statusEl) {
-                statusEl.textContent = `${winner} Wins!`;
-                statusEl.style.color = 'var(--gold)';
+            if (statusEl) {
+              statusEl.textContent = `${winner} Wins!`;
+              statusEl.style.color = 'var(--gold)';
             }
-            
-            document.getElementById('turn-dot').style.display = 'none'; 
+
+            document.getElementById('turn-dot').style.display = 'none';
             boardEl.style.pointerEvents = 'none'; // Lock the board permanently
             clearSelection();
             return; // STOP execution here!
@@ -845,8 +846,28 @@
           document.getElementById('turn-text').textContent = activeTurn;
           document.getElementById('turn-dot').style.display = 'inline-block'; // Ensure dot is visible
           document.getElementById('turn-dot').className = activeTurn === 'White' ? 'turn-dot white-turn' : 'turn-dot black-turn';
-          boardEl.style.pointerEvents = 'auto';
 
+          // ==========================================
+          // ── MOVE COUNTER LOGIC ──
+          // ==========================================
+          if (moveString === 'RESET') {
+            currentMoveNumber = 1; // Reset on a new game
+          } else if (activeTurn === 'White') {
+            // If the turn just flipped back to White, a full move cycle completed!
+            currentMoveNumber++;
+          }
+
+          // Update your HTML element (assuming it has the id 'move-count')
+          const moveCountEl = document.getElementById('move-count');
+          if (moveCountEl) {
+            moveCountEl.textContent = currentMoveNumber;
+          }
+          // ==========================================
+
+          const statusEl = document.getElementById('game-status');
+          if (statusEl) statusEl.style.color = 'var(--text-dim)';
+
+          boardEl.style.pointerEvents = 'auto';
           clearSelection();
         });
     }
@@ -865,4 +886,5 @@
     sendMoveToJava('RESET'); // On page load, fetch the starting position and legal moves!
   </script>
 </body>
+
 </html>
