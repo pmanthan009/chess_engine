@@ -44,20 +44,52 @@ public class WebServer {
             if ("POST".equals(exchange.getRequestMethod())) {
                 InputStream is = exchange.getRequestBody();
 
-                // The payload will look like: "PVP|e2e4" or "CPU|RESET"
+                // The payload will look like: "PVP|e2e4", "CPU|RESET|WHITE", or "CPU|RESET|BLACK"
                 String payload = new String(is.readAllBytes()).trim();
                 System.out.println("Received payload: " + payload);
 
-                // Split the mode and the move
+                // Split the mode, move, and human color preference
                 String[] parts = payload.split("\\|");
                 String mode = parts[0];
                 String moveStr = parts.length > 1 ? parts[1] : "";
-
+                String humanColor = parts.length > 2 ? parts[2] : "WHITE";
+                
                 String lastMoveStr = "";
 
                 if (moveStr.equals("RESET")) {
                     board = new Board();
                     isWhiteTurn = true; // Reset to White
+
+                    // --- NEW: If human is Black, CPU must immediately play the first move as White ---
+                    if (mode.equals("CPU") && humanColor.equals("BLACK")) {
+                        String bookMoveStr = book.getBookMove(board.toFEN());
+                        Move aiMove = null;
+
+                        if (bookMoveStr != null) {
+                            System.out.println("Book move found for White! Playing: " + bookMoveStr);
+                            int startSq = parseSquare(bookMoveStr.substring(0, 2));
+                            int targetSq = parseSquare(bookMoveStr.substring(2, 4));
+                            for (Move m : generator.getLegalMoves(board, true)) { // true = White
+                                if (m.startSquare == startSq && m.targetSquare == targetSq) {
+                                    aiMove = m; 
+                                    break;
+                                }
+                            }
+                        } 
+                        
+                        if (aiMove == null) {
+                            System.out.println("Out of book. Engine Running...");
+                            aiMove = ai.getBestMove(board, 6, true); // true = White
+                        }
+
+                        if (aiMove != null) {
+                            board.makeMove(aiMove, true); // White plays
+                            lastMoveStr = squareToAlgebraic(aiMove.startSquare) + squareToAlgebraic(aiMove.targetSquare);
+                            isWhiteTurn = false; // Flip to Black (Human's turn)
+                        }
+                    }
+                    // ---------------------------------------------------------------------------------
+
                 } else if (moveStr.length() >= 4) {
                     int startSq = parseSquare(moveStr.substring(0, 2));
                     int targetSq = parseSquare(moveStr.substring(2, 4));
@@ -77,45 +109,38 @@ public class WebServer {
                         lastMoveStr = moveStr;
                         isWhiteTurn = !isWhiteTurn; // Flip the turn!
 
-                        // ONLY trigger the Engine if we are in CPU mode AND it is Black's turn
-                        if (mode.equals("CPU") && !isWhiteTurn) {
+                        // --- NEW: DYNAMIC AI TRIGGER ---
+                        // AI plays if it's White's turn and human is Black, OR if it's Black's turn and human is White
+                        boolean isAiTurn = mode.equals("CPU") && (isWhiteTurn == humanColor.equals("BLACK"));
 
-                            // 1. Check the Opening Book FIRST
+                        if (isAiTurn) {
                             String bookMoveStr = book.getBookMove(board.toFEN());
+                            Move aiMove = null;
 
                             if (bookMoveStr != null) {
                                 System.out.println("Book move found! Playing: " + bookMoveStr);
-
-                                // We need to convert the string (e.g., "e7e5") into a real Move object
-                                int bookStartSq = parseSquare(bookMoveStr.substring(0, 2));
-                                int bookTargetSq = parseSquare(bookMoveStr.substring(2, 4));
-
-                                Move chosenBookMove = null;
-                                for (Move m : generator.getLegalMoves(board, false)) { // false = Black
-                                    if (m.startSquare == bookStartSq && m.targetSquare == bookTargetSq) {
-                                        chosenBookMove = m;
+                                int aiStart = parseSquare(bookMoveStr.substring(0, 2));
+                                int aiTarget = parseSquare(bookMoveStr.substring(2, 4));
+                                for (Move m : generator.getLegalMoves(board, isWhiteTurn)) {
+                                    if (m.startSquare == aiStart && m.targetSquare == aiTarget) {
+                                        aiMove = m; 
                                         break;
                                     }
                                 }
-
-                                if (chosenBookMove != null) {
-                                    board.makeMove(chosenBookMove, false);
-                                    lastMoveStr = bookMoveStr;
-                                    isWhiteTurn = true; // Flip back to White
-                                }
-                            }
-                            // 2. Out of book! Turn on the Minimax Engine
-                            else {
+                            } 
+                            
+                            if (aiMove == null) {
                                 System.out.println("Out of book. Engine Running...");
-                                Move aiMove = ai.getBestMove(board, 6, false);
-                                if (aiMove != null) {
-                                    board.makeMove(aiMove, false);
-                                    lastMoveStr = squareToAlgebraic(aiMove.startSquare)
-                                            + squareToAlgebraic(aiMove.targetSquare);
-                                    isWhiteTurn = true; // Flip back to White
-                                }
+                                aiMove = ai.getBestMove(board, 6, isWhiteTurn); // AI uses the current turn color dynamically
+                            }
+
+                            if (aiMove != null) {
+                                board.makeMove(aiMove, isWhiteTurn);
+                                lastMoveStr = squareToAlgebraic(aiMove.startSquare) + squareToAlgebraic(aiMove.targetSquare);
+                                isWhiteTurn = !isWhiteTurn; // Flip back to human
                             }
                         }
+                        // -------------------------------
                     }
                 }
 

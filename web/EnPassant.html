@@ -528,14 +528,22 @@
     <!-- PANEL B: Game mode -->
     <div class="menu-panel hidden" id="panel-mode">
       <p class="options-title visible" id="mode-title">Select Mode</p>
-      <a href="#" class="menu-btn primary visible" id="btn-pvp">
+      
+      <a href="Board.html?mode=pvp" class="menu-btn primary visible" id="btn-pvp">
         <span class="btn-icon">♟ ♟</span>
         <span class="btn-label">Player vs Player</span>
       </a>
-      <a href="#" class="menu-btn visible" id="btn-cpu">
-        <span class="btn-icon">♟ ⚙</span>
-        <span class="btn-label">vs Computer</span>
+      
+      <a href="Board.html?mode=cpu&color=white" class="menu-btn primary visible" id="btn-cpu-w">
+        <span class="btn-icon">♙ ⚙</span>
+        <span class="btn-label">vs Computer (Play White)</span>
       </a>
+      
+      <a href="Board.html?mode=cpu&color=black" class="menu-btn primary visible" id="btn-cpu-b">
+        <span class="btn-icon">♟ ⚙</span>
+        <span class="btn-label">vs Computer (Play Black)</span>
+      </a>
+      
       <a href="#" class="menu-btn back-btn visible" id="btn-mode-back">← Back</a>
     </div>
   </section>

@@ -542,8 +542,11 @@
     // ── Game Mode Setup ──
     const urlParams = new URLSearchParams(window.location.search);
     const gameMode = urlParams.get('mode') || 'cpu'; // Default to CPU if missing
+    const playerColorPref = (urlParams.get('color') || 'white').toLowerCase(); // Read the color preference (default to White)
 
     // Update the top header text dynamically
+    let headerText = gameMode === 'pvp' ? 'Player vs Player' : 'vs Computer';
+    if (gameMode === 'cpu') headerText += ` (${playerColorPref === 'white' ? 'White' : 'Black'})`;
     document.getElementById('header-mode').textContent = gameMode === 'pvp' ? 'Player vs Player' : 'vs Computer';
 
     // ── Cursor ──
@@ -708,6 +711,7 @@
     // Store the current FEN so we can redraw it when the board flips
     let currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
     let currentMoveNumber = 1;
+    flipped = (playerColorPref === 'black');
 
     function initInteractions() {
       const boardEl = document.getElementById('board');
@@ -792,8 +796,8 @@
         }
       }
 
-      // 2. Package the payload: "MODE|MOVE"
-      const payload = gameMode.toUpperCase() + "|" + moveString;
+     // 2. Package the payload: "MODE|MOVE|HUMAN_COLOR" (e.g., "CPU|e2e4|WHITE" or "CPU|RESET|BLACK")
+    const payload = gameMode.toUpperCase() + "|" + moveString + "|" + playerColorPref.toUpperCase();
 
       fetch('http://localhost:8080/api/move', {
         method: 'POST',

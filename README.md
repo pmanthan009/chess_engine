@@ -96,4 +96,3 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * [x] Teach openings.
 * [ ] Keep adding more heuristics.
 * [ ] Implement Transposition Tables (Zobrist Hashing) to give the Engine positional memory.
-* [ ] Populate algebraic move history in the UI side panel.
