@@ -94,13 +94,31 @@ public class WebServer {
                     int startSq = parseSquare(moveStr.substring(0, 2));
                     int targetSq = parseSquare(moveStr.substring(2, 4));
 
+                    // Parse optional promotion piece from 5th character (e.g. "e7e8q")
+                    int requestedPromotion = 5; // Default to Queen
+                    if (moveStr.length() == 5) {
+                        char p = moveStr.charAt(4);
+                        if (p == 'r') requestedPromotion = 4;
+                        else if (p == 'b') requestedPromotion = 3;
+                        else if (p == 'n') requestedPromotion = 2;
+                        // 'q' or anything else stays as 5 (Queen)
+                    }
+
                     // Generate legal moves for whoever's turn it currently is
                     List<Move> legalMoves = generator.getLegalMoves(board, isWhiteTurn);
                     Move chosenMove = null;
                     for (Move m : legalMoves) {
                         if (m.startSquare == startSq && m.targetSquare == targetSq) {
-                            chosenMove = m;
-                            break;
+                            // For promotions
+                            if (m.promotedPiece != 0) {
+                                if (m.promotedPiece == requestedPromotion) {
+                                    chosenMove = m;
+                                    break;
+                                }
+                            } else {
+                                chosenMove = m;
+                                break;
+                            }
                         }
                     }
 

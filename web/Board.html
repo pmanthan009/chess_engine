@@ -468,6 +468,58 @@
     .header-back:hover {
       color: var(--gold);
     }
+
+    /* ── Promotion modal ── */
+    #promotion-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .promo-dialog {
+      background: #111;
+      border: 1px solid var(--gold-dim);
+      padding: 2rem 2.5rem;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(201, 168, 76, 0.18);
+    }
+
+    .promo-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.5em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 1.4rem;
+    }
+
+    #promotion-choices {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .promo-btn {
+      background: transparent;
+      border: 1px solid var(--gold-dim);
+      padding: 0.6rem;
+      cursor: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .promo-btn:hover {
+      border-color: var(--gold);
+      background: rgba(201, 168, 76, 0.08);
+    }
+
+    .promo-btn img {
+      width: 64px;
+      height: 64px;
+      display: block;
+      pointer-events: none;
+    }
   </style>
 </head>
 
@@ -750,7 +802,14 @@
 
             // Only send the move to Java if it's strictly legal!
             if (currentLegalMoves.includes(moveString)) {
-              sendMoveToJava(moveString);
+              // Is a pawn about to reach the back rank? Show the picker instead of sending immediately.
+              const piece = getPieceAtSquare(selectedSquare);
+              const isPromotion = (piece === 'P' && sqId[1] === '8') || (piece === 'p' && sqId[1] === '1');
+              if (isPromotion) {
+                showPromotionModal(selectedSquare, sqId, piece === 'P');
+              } else {
+                sendMoveToJava(moveString);
+              }
             } else {
               clearSelection(); // They clicked an illegal square, just dismiss
             }
@@ -764,6 +823,52 @@
       document.querySelectorAll('.sq.selected').forEach(sq => sq.classList.remove('selected'));
       document.querySelectorAll('.sq.legal').forEach(sq => sq.classList.remove('legal'));
       document.querySelectorAll('.sq.legal-capture').forEach(sq => sq.classList.remove('legal-capture'));
+    }
+
+    // Returns the FEN piece character on a given square (e.g. 'P', 'q'), or null if empty.
+    function getPieceAtSquare(squareId) {
+      const file = squareId.charCodeAt(0) - 'a'.charCodeAt(0); // 0–7
+      const rank = parseInt(squareId[1]) - 1;                  // 0–7
+      const rows = currentFen.split(' ')[0].split('/');
+      // FEN row 0 = rank 8, row 7 = rank 1
+      const fenRow = rows[7 - rank];
+      let col = 0;
+      for (const ch of fenRow) {
+        if (col > file) break;
+        if (ch >= '1' && ch <= '8') {
+          col += parseInt(ch);
+        } else {
+          if (col === file) return ch;
+          col++;
+        }
+      }
+      return null;
+    }
+
+    // Shows the piece-picker overlay and then fires sendMoveToJava with the 5-char string.
+    function showPromotionModal(from, to, isWhite) {
+      const modal = document.getElementById('promotion-modal');
+      const container = document.getElementById('promotion-choices');
+      container.innerHTML = '';
+
+      const choices = isWhite
+        ? [['q', 'assets/wQ.svg'], ['r', 'assets/wR.svg'], ['b', 'assets/wB.svg'], ['n', 'assets/wN.svg']]
+        : [['q', 'assets/bQ.svg'], ['r', 'assets/bR.svg'], ['b', 'assets/bB.svg'], ['n', 'assets/bN.svg']];
+
+      choices.forEach(([promoChar, imgSrc]) => {
+        const btn = document.createElement('button');
+        btn.className = 'promo-btn';
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        btn.appendChild(img);
+        btn.addEventListener('click', () => {
+          modal.style.display = 'none';
+          sendMoveToJava(from + to + promoChar);
+        });
+        container.appendChild(btn);
+      });
+
+      modal.style.display = 'flex';
     }
 
     function sendMoveToJava(moveString) {
@@ -889,6 +994,15 @@
     initInteractions();
     sendMoveToJava('RESET'); // On page load, fetch the starting position and legal moves!
   </script>
+
+  <!-- ── Promotion Modal ── -->
+  <div id="promotion-modal">
+    <div class="promo-dialog">
+      <div class="promo-label">Promote Pawn</div>
+      <div id="promotion-choices"></div>
+    </div>
+  </div>
+
 </body>
 
 </html>
