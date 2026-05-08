@@ -68,7 +68,17 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 * **FEN Serialization:** Translates complex 64-bit board states into Forsyth-Edwards Notation strings to communicate seamlessly with the frontend.
 * **Premium UI/UX:** Developed a responsive, dark-mode graphical interface using Vanilla JS, featuring optimistic UI rendering for zero-latency human piece movement, dynamic legal-move highlighting, and scrolling SVG backgrounds.
 
-## Test Outputs (Backend):
+## Frontend Design:
+
+### 1. Home Page/ Landing:
+<img width="1893" height="902" alt="Screenshot 2026-03-17 231915" src="https://github.com/user-attachments/assets/27e3b684-0864-4c48-80a3-03410bdbffb7" />
+<img width="1889" height="902" alt="Screenshot 2026-03-17 231949" src="https://github.com/user-attachments/assets/8bef0569-880c-4b4c-9a92-ad9473613c3b" />
+<img width="1881" height="871" alt="Screenshot 2026-03-17 232010" src="https://github.com/user-attachments/assets/589e4837-9af0-47fd-aaa7-728b58ccec12" />
+
+### 2. Board Page:
+<img width="1919" height="903" alt="Screenshot 2026-03-17 232103" src="https://github.com/user-attachments/assets/07d2c73a-91a5-40fd-a96c-864546738651" />
+
+## Test Outputs (Console):
 
 ### 1. Knights:
 <img width="733" height="845" alt="Screenshot 2026-03-04 172742" src="https://github.com/user-attachments/assets/124c9622-db8f-420d-a362-96481980fa5d" />
@@ -88,16 +98,6 @@ The engine currently supports pseudo-legal and strictly legal move generation fo
 ### 5. Pawn Promotions:
 <img width="669" height="694" alt="Screenshot 2026-03-06 235203" src="https://github.com/user-attachments/assets/2cba195b-04a8-4ba7-aa81-1b0f32b26988" />
 <img width="632" height="531" alt="Screenshot 2026-03-06 235214" src="https://github.com/user-attachments/assets/114cf213-e894-499b-9626-a75aa2ce3f80" />
-
-Frontend Design:
-
-### 1. Home Page/ Landing:
-<img width="1893" height="902" alt="Screenshot 2026-03-17 231915" src="https://github.com/user-attachments/assets/27e3b684-0864-4c48-80a3-03410bdbffb7" />
-<img width="1889" height="902" alt="Screenshot 2026-03-17 231949" src="https://github.com/user-attachments/assets/8bef0569-880c-4b4c-9a92-ad9473613c3b" />
-<img width="1881" height="871" alt="Screenshot 2026-03-17 232010" src="https://github.com/user-attachments/assets/589e4837-9af0-47fd-aaa7-728b58ccec12" />
-
-### 2. Board Page:
-<img width="1919" height="903" alt="Screenshot 2026-03-17 232103" src="https://github.com/user-attachments/assets/07d2c73a-91a5-40fd-a96c-864546738651" />
 
 ## Next Steps
 * [x] Develop a static board evaluation function.
