@@ -1,6 +1,7 @@
 # Java Bitboard Chess Engine
 
 **Author:** Manthan Patel
+
 **In production at:** https://chess-engine-deploy.vercel.app (from a different deployment repo)
 
 ## Overview
